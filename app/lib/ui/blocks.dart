@@ -726,7 +726,7 @@ class _EventRowState extends State<_EventRow> {
     final m = Scope.of(context).m;
     final d = fromIso(widget.e['date'] as String);
     final n = daysBetween(m.today, d);
-    final (when, color) = n == 0
+    final (whenText, color) = n == 0
         ? ('сегодня', C.ok)
         : n == 1
             ? ('завтра', C.warn)
@@ -739,7 +739,7 @@ class _EventRowState extends State<_EventRow> {
         child: Row(children: [
           Expanded(child: Text(widget.e['title'] as String, style: T.small, overflow: TextOverflow.ellipsis)),
           Text(' ${two(d.day)}.${two(d.month)} ', style: T.tiny.copyWith(color: C.faint)),
-          Text(when, style: T.small.copyWith(color: color)),
+          Text(whenText, style: T.small.copyWith(color: color)),
           SizedBox(
             width: 18,
             child: hover ? IconBtn(Icons.close, 'Удалить', () => m.deleteEvent(widget.e['id'] as String), color: C.danger, size: 12) : null,
