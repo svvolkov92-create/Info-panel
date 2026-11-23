@@ -34,6 +34,7 @@ void main() {
 
       // карточка задачи
       await tester.tap(find.text('Договор юристам').first);
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(find.text('Матрица Эйзенхауэра'), findsWidgets);
       await tester.tap(find.text('Высокий'));
@@ -43,7 +44,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // добавление задачи с распознаванием
-      await tester.enterText(find.byType(TextField).first, 'завтра 15:00 отчёт ~2ч');
+      final entry = find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == 'Новая задача и Enter, или Ctrl+V списком');
+      await tester.enterText(entry, 'завтра 15:00 отчёт ~2ч');
       await tester.pump();
       expect(find.textContaining('15:00'), findsWidgets);
       await tester.testTextInput.receiveAction(TextInputAction.done);

@@ -163,8 +163,9 @@ class PanelModel extends ChangeNotifier {
         storage.logError('Не удалось разобрать данные, сохранение отключено:\n$e\n$st');
       }
     }
-    // JSON может прийти с типами List<dynamic>/Map<dynamic, dynamic> — приводим верхний уровень
-    data = d;
+    // Единый вид данных, как после чтения файла: обычные списки и словари без «узких» типов.
+    // Иначе данные, собранные в коде (демо, старые версии), падали бы при добавлении элементов.
+    data = jsonDecode(jsonEncode(d)) as Json;
     today = dayOnly(_now());
     selected = today;
     viewMonth = DateTime(today.year, today.month);
