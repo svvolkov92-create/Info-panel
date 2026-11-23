@@ -58,7 +58,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text(item).last);
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('Закрыть (Esc)').last.evaluate().isNotEmpty ? find.byTooltip('Закрыть (Esc)').last : find.byTooltip('Закрыть').last);
+        await tester.tap(find.byIcon(Icons.close).last);
         await tester.pumpAndSettle();
       }
 

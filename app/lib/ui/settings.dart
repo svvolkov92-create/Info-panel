@@ -152,9 +152,8 @@ class SettingsDialog extends StatelessWidget {
                     if (Storage.persistent) ...[
                       const SectionLabel('Данные'),
                       Text('Папка: ${m.storage.dataDir}', style: T.tiny),
-                      Row(children: [
+                      Wrap(spacing: 12, children: [
                         Btn('Открыть папку с данными', () => m.storage.openExternal(m.storage.dataDir), pad: 0),
-                        const SizedBox(width: 12),
                         Btn('Журнал ошибок', () => m.storage.openExternal(m.storage.logPath), color: C.muted),
                       ]),
                     ],
