@@ -130,7 +130,10 @@ class _MatrixWindowState extends State<MatrixWindow> {
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
-              Text(q == 'none' ? 'Без отметки' : eis[q]!.$1, style: T.title.copyWith(color: q == 'none' ? C.muted : color)),
+              Flexible(
+                child: Text(q == 'none' ? 'Без отметки' : eis[q]!.$1,
+                    style: T.title.copyWith(color: q == 'none' ? C.muted : color), overflow: TextOverflow.ellipsis),
+              ),
               const SizedBox(width: 6),
               Expanded(child: Text(q == 'none' ? 'перетащите в нужный квадрант' : eis[q]!.$2, style: T.tiny.copyWith(color: C.faint), overflow: TextOverflow.ellipsis)),
               Text(items.isEmpty ? '' : '${items.length}', style: T.small.copyWith(color: C.muted)),

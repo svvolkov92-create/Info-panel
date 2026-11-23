@@ -512,8 +512,10 @@ class PomoBlock extends StatelessWidget {
         IconBtn(Icons.skip_next, 'Пропустить', m.pomoSkip, size: 15),
       ]),
       Row(children: [
-        Text('${'●' * inCycle}${'○' * (every - inCycle)}  до длинного перерыва', style: T.tiny.copyWith(color: C.faint)),
-        const Spacer(),
+        Expanded(
+          child: Text('${'●' * inCycle}${'○' * (every - inCycle)}  до длинного перерыва',
+              style: T.tiny.copyWith(color: C.faint), overflow: TextOverflow.ellipsis),
+        ),
         for (final (w, b, l) in const [(25, 5, 15), (50, 10, 20), (15, 3, 10)])
           Btn('$w/$b', () => m.setPomo(work: w, brk: b, long: l),
               color: m.s['work'] == w && m.s['break'] == b ? C.accent : C.faint, size: 10, pad: 3),
