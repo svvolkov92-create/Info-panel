@@ -48,7 +48,8 @@ Name: "{userdesktop}\Информационная панель"; Filename: "{app
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "DesktopPanel"; ValueData: """{app}\DesktopPanel.exe"""; Tasks: autostart; Flags: uninsdeletevalue
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "DesktopPanel"; Flags: uninsdeletevalue dontcreatekey
+; без галочки автозапуска убираем и прежний автозапуск Python-версии, чтобы не запускались обе
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "DesktopPanel"; Flags: deletevalue; Tasks: not autostart
 
 [Run]
 Filename: "{app}\DesktopPanel.exe"; Description: "Запустить панель"; Flags: nowait postinstall skipifsilent

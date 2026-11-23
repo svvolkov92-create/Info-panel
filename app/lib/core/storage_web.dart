@@ -22,4 +22,8 @@ class Storage {
   void openExternal(String target) {}
 
   Future<void> relaunch() async {}
+
+  static const windowTitle = 'Информационная панель';
+  bool acquireSingleInstance({bool wait = false}) => true;
+  bool activateExisting() => false;
 }

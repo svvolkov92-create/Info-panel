@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
+
+import 'package:ffi/ffi.dart';
 
 /// Файлы данных: data.json, копия прошлого сохранения data.bak.json, журнал ошибок error.log.
 /// Логика та же, что в Python-версии, поэтому обе программы читают один и тот же файл.
@@ -139,5 +142,52 @@ class Storage {
   Future<void> relaunch() async {
     await Process.start(Platform.resolvedExecutable, ['--restart'], mode: ProcessStartMode.detached);
     exit(0);
+  }
+
+  // ---------- одна копия программы ----------
+  // Тот же системный флаг, что у Python-версии: обе версии не могут работать с данными одновременно.
+  static const _mutexName = r'Local\DesktopPanelSingleInstance';
+  static const windowTitle = 'Информационная панель';
+
+  /// true — эта копия единственная. wait — подождать, пока закроется прежняя (перезапуск).
+  bool acquireSingleInstance({bool wait = false}) {
+    if (!Platform.isWindows) return true;
+    final k32 = DynamicLibrary.open('kernel32.dll');
+    final createMutex = k32.lookupFunction<IntPtr Function(Pointer<Void>, Int32, Pointer<Utf16>),
+        int Function(Pointer<Void>, int, Pointer<Utf16>)>('CreateMutexW');
+    final getLastError = k32.lookupFunction<Uint32 Function(), int Function()>('GetLastError');
+    final closeHandle = k32.lookupFunction<Int32 Function(IntPtr), int Function(int)>('CloseHandle');
+    final name = _mutexName.toNativeUtf16();
+    try {
+      for (var i = 0; i < (wait ? 50 : 1); i++) {
+        final h = createMutex(nullptr, 0, name);
+        if (h != 0 && getLastError() != 183) return true; // 183 — ERROR_ALREADY_EXISTS
+        if (h != 0) closeHandle(h);
+        if (wait) sleep(const Duration(milliseconds: 100));
+      }
+      return false;
+    } finally {
+      calloc.free(name);
+    }
+  }
+
+  /// Показывает уже открытую панель (новой версии). false — окно не найдено.
+  bool activateExisting() {
+    if (!Platform.isWindows) return false;
+    final u32 = DynamicLibrary.open('user32.dll');
+    final findWindow = u32.lookupFunction<IntPtr Function(Pointer<Utf16>, Pointer<Utf16>),
+        int Function(Pointer<Utf16>, Pointer<Utf16>)>('FindWindowW');
+    final showWindow = u32.lookupFunction<Int32 Function(IntPtr, Int32), int Function(int, int)>('ShowWindow');
+    final setForeground = u32.lookupFunction<Int32 Function(IntPtr), int Function(int)>('SetForegroundWindow');
+    final title = windowTitle.toNativeUtf16();
+    try {
+      final hwnd = findWindow(nullptr, title);
+      if (hwnd == 0) return false;
+      showWindow(hwnd, 9); // SW_RESTORE
+      setForeground(hwnd);
+      return true;
+    } finally {
+      calloc.free(title);
+    }
   }
 }
