@@ -79,7 +79,7 @@ class _TaskCardState extends State<TaskCard> {
           child: Row(children: [
             Icon(closed ? Icons.chevron_right : Icons.expand_more, size: 16, color: C.muted),
             const SizedBox(width: 2),
-            Text(label, style: T.tiny),
+            Flexible(child: Text(label, style: T.tiny, overflow: TextOverflow.ellipsis)),
           ]),
         ),
       ),
