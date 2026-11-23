@@ -51,6 +51,8 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       expect(m.tasks.where((t) => (t as Map)['text'] == 'отчёт').length, 1);
+      // после Enter поле остаётся в фокусе — следующую задачу можно вводить сразу
+      expect(tester.widget<TextField>(entry).focusNode?.hasFocus ?? FocusManager.instance.primaryFocus?.context?.widget is EditableText, isTrue);
 
       // меню: неделя, матрица, настройки
       for (final item in ['Неделя', 'Матрица Эйзенхауэра', 'Настройки…']) {

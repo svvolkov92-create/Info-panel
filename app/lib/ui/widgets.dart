@@ -152,6 +152,8 @@ class _FieldState extends State<Field> {
         autofocus: widget.autofocus,
         style: widget.style ?? T.norm,
         onChanged: widget.onChanged,
+        // фокус остаётся в поле: задачи можно вводить подряд, нажимая Enter
+        onEditingComplete: () {},
         onSubmitted: (v) {
           widget.onSubmit(v);
           if (widget.clearOnSubmit) {
