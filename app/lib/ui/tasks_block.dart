@@ -437,10 +437,7 @@ class _TaskRowState extends State<TaskRow> {
       );
     } else {
       titleArea = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        GestureDetector(
-          onDoubleTap: widget.onEdit,
-          child: Text(t['text'] as String, style: TextStyle(fontSize: font, color: done ? C.muted : C.fg, height: 1.25)),
-        ),
+        Text(t['text'] as String, style: TextStyle(fontSize: font, color: done ? C.muted : C.fg, height: 1.25)),
         if (meta.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 1),

@@ -660,7 +660,7 @@ class StatsBlock extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 4),
-      Row(children: [
+      Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
         Text('Помидоры за 7 дней:', style: T.tiny),
         Btn('по задачам', () => m.setSetting('stats_by', 'task'), color: by == 'task' ? C.accent : C.faint, size: 11, pad: 4),
         Btn('по меткам', () => m.setSetting('stats_by', 'tag'), color: by == 'tag' ? C.accent : C.faint, size: 11, pad: 4),
