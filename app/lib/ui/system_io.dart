@@ -76,7 +76,12 @@ class SystemIntegration with TrayListener {
 
   /// Уведомление Windows — когда панель не на виду (свёрнута, под окнами или неактивна).
   Future<void> notify(Notice n) async {
-    final sound = n.sound != null ? ((m.s['sounds'] as Map?)?[n.sound] as Map?)?['file'] as String? ?? 'default' : 'default';
+    var sound = 'default';
+    final sounds = m.s['sounds'];
+    if (n.sound != null && sounds is Map) {
+      final cfg = sounds[n.sound];
+      if (cfg is Map && cfg['file'] is String) sound = cfg['file'] as String;
+    }
     m.storage.playSound(sound);
     if (!_notifier) return;
     try {
