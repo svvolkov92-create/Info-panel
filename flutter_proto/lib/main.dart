@@ -112,7 +112,7 @@ Parsed parseQuick(String raw) {
   }
 
   const wd = {'пн': 0, 'вт': 1, 'ср': 2, 'чт': 3, 'пт': 4, 'сб': 5, 'вс': 6};
-  take(RegExp(r' до (\d{1,2}\.\d{1,2}|пн|вт|ср|чт|пт|сб|вс)(?= )'), (m) => ('⚑ до ${m[1]}', P.warn));
+  take(RegExp(r' до (\d{1,2}\.\d{1,2}|пн|вт|ср|чт|пт|сб|вс)(?= )'), (m) => ('до ${m[1]}', P.warn));
   take(RegExp(r' (\d{1,2})\.(\d{1,2})(?= )'), (m) => ('${m[1]!.padLeft(2, '0')}.${m[2]!.padLeft(2, '0')}', P.accent));
   take(RegExp(r' (пн|вт|ср|чт|пт|сб|вс|завтра)(?= )'), (m) {
     if (m[1] == 'завтра') return ('завтра', P.accent);
@@ -281,7 +281,7 @@ class _HomeState extends State<Home> {
                   style: const TextStyle(color: P.muted, fontSize: 12))),
           _block('week', 'Неделя', WeekStrip(tasks: tasks)),
           _block('pomo', 'Фокус', _pomo(),
-              titleColor: P.accent, summary: '${_clockText(pomoLeft)}${pomoRunning ? '' : ' ⏸'}'),
+              titleColor: P.accent, summary: '${_clockText(pomoLeft)}${pomoRunning ? '' : ', пауза'}'),
         ]),
       ),
     );
@@ -539,7 +539,7 @@ class _TasksBlockState extends State<TasksBlock> {
           if (est > 0)
             Text('${fmtEst(est)} из 8 ч', style: TextStyle(color: over ? P.danger : P.muted, fontSize: 12)),
           const SizedBox(width: 10),
-          Text(items.isNotEmpty && done == items.length ? 'всё сделано ✓' : (items.isEmpty ? '' : '$done из ${items.length}'),
+          Text(items.isNotEmpty && done == items.length ? 'всё сделано' : (items.isEmpty ? '' : '$done из ${items.length}'),
               style: TextStyle(color: items.isNotEmpty && done == items.length ? P.ok : P.muted, fontSize: 12)),
         ]),
       ),
@@ -682,7 +682,7 @@ class _TaskRowState extends State<TaskRow> {
     final t = widget.task, s = widget.state;
     final meta = <(String, Color)>[
       if (t.eis != null) (eisNames[t.eis]!.$1, t.done ? P.muted : eisNames[t.eis]!.$2),
-      if (t.deadline != null && !t.done) ('⚑ до ${s.futureLabel(t.deadline!)}', P.warn),
+      if (t.deadline != null && !t.done) ('дедлайн ${s.futureLabel(t.deadline!)}', P.warn),
       if (t.est > 0) (fmtEst(t.est), P.muted),
       for (final g in t.tags) ('#$g', P.rest),
       if (t.subs.isNotEmpty) ('${t.subs.where((x) => x.done).length}/${t.subs.length} подзадач', P.muted),
@@ -763,7 +763,7 @@ class _TaskRowState extends State<TaskRow> {
         if (t.note.isNotEmpty && t.subs.isNotEmpty) const TextSpan(text: '\n'),
         for (final x in t.subs)
           TextSpan(
-              text: '${x.done ? '✓' : '○'}  ${x.text}\n',
+              text: '${x.done ? 'готово' : '•'}  ${x.text}\n',
               style: TextStyle(color: x.done ? P.muted : P.fg)),
       ]),
       child: row,
