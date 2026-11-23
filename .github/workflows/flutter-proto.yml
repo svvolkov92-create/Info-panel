@@ -25,6 +25,8 @@ jobs:
           flutter --version | tee build.log
           flutter create --platforms=web,windows --project-name info_panel_proto . 2>&1 | tail -3 | tee -a build.log
           rm -f test/widget_test.dart
+          flutter pub get 2>&1 | tee -a build.log
+          flutter pub deps --style=compact 2>&1 | grep -iE "window|shared_pref" | tee -a build.log
           set -o pipefail
           flutter build web --release --no-web-resources-cdn 2>&1 | tee -a build.log
           sed -i 's|<base href="/">|<base href="./">|' build/web/index.html
