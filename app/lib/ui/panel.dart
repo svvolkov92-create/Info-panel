@@ -74,20 +74,19 @@ class Header extends StatelessWidget {
     final sc = Scope.of(context);
     final m = sc.m;
     final compact = m.s['ui_compact'] != false;
+    final clock = ValueListenableBuilder(
+      valueListenable: m.clock,
+      builder: (_, now, __) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('${two(now.hour)}:${two(now.minute)}',
+            style: TextStyle(fontSize: compact ? 32 : 42, fontWeight: FontWeight.w300, height: 1, color: C.fg)),
+        SizedBox(height: compact ? 3 : 6),
+        Text('${weekdays[wd(now)]}, ${dayLong(now)} ${now.year}', style: T.small.copyWith(color: C.muted)),
+      ]),
+    );
     final head = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-          child: ValueListenableBuilder(
-            valueListenable: m.clock,
-            builder: (_, now, __) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${two(now.hour)}:${two(now.minute)}',
-                  style: TextStyle(fontSize: compact ? 32 : 42, fontWeight: FontWeight.w300, height: 1, color: C.fg)),
-              SizedBox(height: compact ? 3 : 6),
-              Text('${weekdays[wd(now)]}, ${dayLong(now)} ${now.year}', style: T.small.copyWith(color: C.muted)),
-            ]),
-          ),
-        ),
+        Expanded(child: _dragArea(clock)),
         IconBtn(Icons.search, 'Поиск задач (Ctrl+F)', () => sc.actions.openSearch(context)),
         PopupMenuButton<VoidCallback>(
           tooltip: 'Меню',
@@ -115,10 +114,22 @@ class Header extends StatelessWidget {
           IconBtn(Icons.close, desk!.hasTray ? 'Скрыть в трей (вернуть — щелчок по значку)' : 'Закрыть панель', desk!.close),
       ]),
     );
-    if (desk == null || !desk!.widgetMode) return head;
+    return head;
+  }
+
+  /// Часы и дата — ручка для перетаскивания виджета. Перетаскивание начинается сразу при нажатии:
+  /// иначе движение мыши перехватывает прокрутка панели. Кнопки справа остаются обычными кнопками.
+  Widget _dragArea(Widget child) {
+    if (desk == null || !desk!.widgetMode) return child;
     return MouseRegion(
       cursor: SystemMouseCursors.move,
-      child: GestureDetector(onPanStart: (_) => desk!.startDrag(), child: head),
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (e) {
+          if (e.buttons == 1) desk!.startDrag();
+        },
+        child: child,
+      ),
     );
   }
 

@@ -459,7 +459,8 @@ class _TaskRowState extends State<TaskRow> {
     final row = MouseRegion(
       onEnter: (_) => setState(() => hover = true),
       onExit: (_) => setState(() => hover = false),
-      child: Container(
+      child: Stack(children: [
+       Container(
         margin: EdgeInsets.symmetric(vertical: gap),
         padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
         decoration: BoxDecoration(
@@ -485,18 +486,33 @@ class _TaskRowState extends State<TaskRow> {
               child: Text(t['time'] as String, style: TextStyle(fontSize: font, color: done ? C.faint : C.muted, height: 1.25)),
             ),
           Expanded(child: InkWell(onTap: widget.editing ? null : () => sc.actions.openCard(context, id), child: titleArea)),
-          if (prio != null && !done && !hover)
-            Padding(
-              padding: const EdgeInsets.only(top: 6, left: 4, right: 2),
-              child: Container(width: 6, height: 6, decoration: BoxDecoration(color: prio, shape: BoxShape.circle)),
-            ),
-          if (hover && !widget.editing) ...[
-            if (!done) IconBtn(Icons.play_arrow_rounded, 'Помидор', () => m.linkPomo(id), color: C.ok, size: 15),
-            if (!done) IconBtn(Icons.redo_rounded, 'На следующий день', () => m.moveTaskDate(id, m.nextDayFor(id)), color: C.accent, size: 15),
-            IconBtn(Icons.close_rounded, 'Удалить', () => m.deleteTask(id), color: C.danger, size: 15),
-          ],
+          // точка приоритета — всегда на своём месте, чтобы строка не меняла ширину
+          SizedBox(
+            width: 12,
+            child: prio != null && !done
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Container(width: 6, height: 6, decoration: BoxDecoration(color: prio, shape: BoxShape.circle)),
+                  )
+                : null,
+          ),
         ]),
       ),
+       // значки действий появляются поверх правого края строки и не сдвигают текст
+       if (hover && !widget.editing)
+         Positioned(
+           right: 2,
+           top: gap + 1,
+           child: Container(
+             decoration: BoxDecoration(color: widget.selected ? C.selected : C.hover, borderRadius: BorderRadius.circular(5)),
+             child: Row(mainAxisSize: MainAxisSize.min, children: [
+               if (!done) IconBtn(Icons.play_arrow_rounded, 'Помидор', () => m.linkPomo(id), color: C.ok, size: 15),
+               if (!done) IconBtn(Icons.redo_rounded, 'На следующий день', () => m.moveTaskDate(id, m.nextDayFor(id)), color: C.accent, size: 15),
+               IconBtn(Icons.close_rounded, 'Удалить', () => m.deleteTask(id), color: C.danger, size: 15),
+             ]),
+           ),
+         ),
+      ]),
     );
 
     // предпросмотр заметки и подзадач при наведении — без открытия карточки
