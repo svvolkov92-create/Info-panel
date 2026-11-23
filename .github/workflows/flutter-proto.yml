@@ -65,6 +65,16 @@ jobs:
         with:
           name: InfoPanel-Flutter-Windows
           path: flutter_proto/build/windows/x64/runner/Release/
+      - name: Publish zip to proto-win branch
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ..\winzip | Out-Null
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath ..\winzip\InfoPanel-Flutter-Windows.zip -Force
+          cd ..\winzip
+          git init -q -b proto-win
+          git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "windows build"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" proto-win
       - name: Save log
         if: always()
         run: |
