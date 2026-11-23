@@ -1,0 +1,35 @@
+name: App
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", "build/**", ".github/workflows/app.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Analyze and test
+        run: |
+          set -o pipefail
+          flutter pub get 2>&1 | tail -3 | tee check.log
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib test 2>&1 | tee -a check.log
+          flutter test 2>&1 | tail -60 | tee -a check.log
+      - name: Save log
+        if: always()
+        run: |
+          mkdir -p /tmp/log && cp check.log /tmp/log/check.log
+          cd /tmp/log && git init -q -b ci-logs-app && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm log
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-logs-app

@@ -1,7 +1,7 @@
-name: info_panel_proto
-description: Прототип информационной панели на Flutter (только вид, данные тестовые).
+name: desktop_panel
+description: Информационная панель для рабочего стола Windows.
 publish_to: none
-version: 0.1.0
+version: 2.0.0
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -10,7 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   window_manager: ^0.5.1
-  shared_preferences: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
