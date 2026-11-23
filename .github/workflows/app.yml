@@ -33,3 +33,75 @@ jobs:
           cd /tmp/log && git init -q -b ci-logs-app && git add -A
           git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm log
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-logs-app
+
+  web:
+    needs: check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Build web preview
+        run: |
+          flutter create --platforms=web --project-name desktop_panel . > /dev/null
+          rm -rf test/widget_test.dart
+          flutter build web --release --no-web-resources-cdn
+          sed -i 's|<base href="/">|<base href="./">|' build/web/index.html
+      - name: Publish to app-web branch
+        run: |
+          cd build/web
+          rm -f flutter_service_worker.js
+          git init -q -b app-web && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "web ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" app-web
+
+  windows:
+    needs: check
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Version
+        run: echo "VER=2.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+      - name: Build exe
+        run: |
+          flutter create --platforms=windows --project-name desktop_panel --org ru.desktoppanel . > build.log 2>&1
+          rm -rf test/widget_test.dart
+          sed -i 's/set(BINARY_NAME "desktop_panel")/set(BINARY_NAME "DesktopPanel")/' windows/CMakeLists.txt
+          cp ../build/icon.ico windows/runner/resources/app_icon.ico
+          sed -i 's/L"desktop_panel"/L"Информационная панель"/' windows/runner/main.cpp
+          set -o pipefail
+          flutter build windows --release --build-name "$VER" 2>&1 | tee -a build.log
+          ls build/windows/x64/runner/Release
+      - name: Installer
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y | Out-Null
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$env:VER ..\build\installer.iss
+      - name: Publish to release-win branch
+        run: |
+          mkdir -p ../out && cp ../dist/DesktopPanelSetup-*.exe ../out/
+          cd ../out && git init -q -b release-win && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "setup $VER"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" release-win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DesktopPanelSetup
+          path: dist/DesktopPanelSetup-*.exe
+      - name: Save log
+        if: always()
+        run: |
+          mkdir -p ../wlog && cp build.log ../wlog/windows.log 2>/dev/null || echo none > ../wlog/windows.log
+          cd ../wlog && git init -q -b ci-logs-win && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm log
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-logs-win

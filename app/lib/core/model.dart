@@ -72,6 +72,20 @@ class PanelModel extends ChangeNotifier {
   List get tasks => data['tasks'] as List;
   List get recurring => data['recurring'] as List;
 
+  /// Выбранная клавиатурой задача и задача, которая правится одной строкой.
+  String? kbSel;
+  String? editing;
+
+  void setKbSel(String? id) {
+    kbSel = id;
+    notifyListeners();
+  }
+
+  void setEditing(String? id) {
+    editing = id;
+    notifyListeners();
+  }
+
   late DateTime today;
   late DateTime selected;
   late DateTime viewMonth; // первое число показанного месяца
@@ -1236,12 +1250,18 @@ class PanelModel extends ChangeNotifier {
   bool carried(Json t) =>
       t['date'] == iso(today) && t['done'] != true && '${t['from'] ?? iso(today)}'.compareTo(iso(today)) < 0;
 
+  /// Разбор хвостов ждёт, пока интерфейс будет готов его показать.
+  bool pendingMorningReview = false;
+
   void maybeMorningReview() {
     final t0 = iso(today);
     if (s['review'] == false || s['review_date'] == t0) return;
     s['review_date'] = t0;
     save();
-    if (tasks.any((t) => carried(t as Json))) _reviews.add('morning');
+    if (tasks.any((t) => carried(t as Json))) {
+      pendingMorningReview = true;
+      _reviews.add('morning');
+    }
   }
 
   void maybeWeeklyReview(DateTime now) {
@@ -1258,6 +1278,18 @@ class PanelModel extends ChangeNotifier {
     s[key] = value;
     save();
     notifyListeners();
+  }
+
+  /// Числовая настройка; длительности помодоро сразу сбрасывают остановленный таймер.
+  void setPomoOrSetting(String key, int value) {
+    if (const ['work', 'break', 'long', 'cycle'].contains(key)) {
+      s[key] = value;
+      save();
+      if (!pomoRunning) pomoReset();
+      notifyListeners();
+    } else {
+      setSetting(key, value);
+    }
   }
 
   bool collapsed(String key) => (s['collapsed'] as Map)[key] == true;

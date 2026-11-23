@@ -118,4 +118,26 @@ class Storage {
   }
 
   static String _2(int n) => n.toString().padLeft(2, '0');
+
+  /// Открывает ссылку, файл или папку программой по умолчанию (как os.startfile в Python).
+  void openExternal(String target) {
+    var t = target.trim().replaceAll('"', '');
+    while (t.isNotEmpty && '.,;:)'.contains(t[t.length - 1])) {
+      t = t.substring(0, t.length - 1);
+    }
+    if (t.toLowerCase().startsWith('www.')) t = 'https://$t';
+    if (Platform.isWindows) {
+      Process.start('explorer', [t], runInShell: false);
+    } else if (Platform.isMacOS) {
+      Process.start('open', [t]);
+    } else {
+      Process.start('xdg-open', [t]);
+    }
+  }
+
+  /// Перезапуск программы (после смены режима «виджет / окно»).
+  Future<void> relaunch() async {
+    await Process.start(Platform.resolvedExecutable, ['--restart'], mode: ProcessStartMode.detached);
+    exit(0);
+  }
 }

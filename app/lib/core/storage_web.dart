@@ -18,4 +18,8 @@ class Storage {
   String get dataDir => '';
 
   Future<String?> fetchText(String url) async => null;
+
+  void openExternal(String target) {}
+
+  Future<void> relaunch() async {}
 }
