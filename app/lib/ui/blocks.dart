@@ -169,9 +169,10 @@ class GoalsBlock extends StatelessWidget {
           padding: const EdgeInsets.only(top: 6, bottom: 4),
           child: Field(
             hint: 'Цель недели и Enter (до $goalsLimit)',
-            onSubmit: (v) {
+            onSubmitOk: (v) {
               final err = m.addGoal(v);
               if (err != null) m.flash(err, 'warn');
+              return err == null;
             },
           ),
         ),
@@ -278,7 +279,11 @@ class _FutureBlockState extends State<FutureBlock> {
         padding: const EdgeInsets.only(top: 6, bottom: 4),
         child: Field(
           hint: 'Задача и дата: «Купить билеты 20.11»',
-          onSubmit: (v) => _hint(m.addFuture(v)),
+          onSubmitOk: (v) {
+            final err = m.addFuture(v);
+            _hint(err);
+            return err == null;
+          },
           onPasteLines: (lines) => _hint(m.addFutureLines(lines)),
           clearOnSubmit: true,
         ),
@@ -705,7 +710,13 @@ class _EventsBlockState extends State<EventsBlock> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Padding(
         padding: const EdgeInsets.only(top: 6, bottom: 4),
-        child: Field(hint: 'Событие ДД.ММ и Enter', onSubmit: (v) => setState(() => error = m.addEvent(v))),
+        child: Field(
+          hint: 'Событие ДД.ММ и Enter',
+          onSubmitOk: (v) {
+            setState(() => error = m.addEvent(v));
+            return error == null;
+          },
+        ),
       ),
       if (error != null) Text(error!, style: T.tiny.copyWith(color: C.danger)),
       if (evs.isEmpty) Text('Нет событий', style: T.small.copyWith(color: C.faint)),

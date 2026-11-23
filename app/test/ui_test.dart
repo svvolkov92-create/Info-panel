@@ -55,6 +55,21 @@ void main() {
       final editable = tester.widget<EditableText>(find.descendant(of: entry, matching: find.byType(EditableText)));
       expect(editable.focusNode.hasFocus, isTrue);
 
+      // будущая задача без даты не пропадает: текст остаётся в поле, появляется подсказка
+      final future = find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == 'Задача и дата: «Купить билеты 20.11»');
+      final count = m.tasks.length;
+      await tester.enterText(future, 'Позвонить в банк');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(m.tasks.length, count);
+      expect(tester.widget<TextField>(future).controller?.text ?? find.text('Позвонить в банк').evaluate().length.toString(), isNot(''));
+      expect(find.text('Позвонить в банк'), findsOneWidget);
+      expect(find.textContaining('Добавьте дату в конце'), findsOneWidget);
+      await tester.enterText(future, 'Позвонить в банк пт');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(m.tasks.length, count + 1);
+
       // меню: неделя, матрица, настройки
       for (final item in ['Неделя', 'Матрица Эйзенхауэра', 'Настройки…']) {
         await tester.tap(find.byTooltip('Меню'));

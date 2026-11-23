@@ -85,7 +85,8 @@ class Field extends StatefulWidget {
   const Field({
     super.key,
     required this.hint,
-    required this.onSubmit,
+    this.onSubmit,
+    this.onSubmitOk,
     this.onPasteLines,
     this.controller,
     this.focusNode,
@@ -98,7 +99,10 @@ class Field extends StatefulWidget {
   });
 
   final String hint;
-  final void Function(String) onSubmit;
+  final void Function(String)? onSubmit;
+
+  /// Вместо onSubmit: возвращает true, если строка принята. Иначе текст остаётся в поле для исправления.
+  final bool Function(String)? onSubmitOk;
   final void Function(List<String>)? onPasteLines;
   final TextEditingController? controller;
   final FocusNode? focusNode;
@@ -155,8 +159,13 @@ class _FieldState extends State<Field> {
         // фокус остаётся в поле: задачи можно вводить подряд, нажимая Enter
         onEditingComplete: () {},
         onSubmitted: (v) {
-          widget.onSubmit(v);
-          if (widget.clearOnSubmit) {
+          var ok = true;
+          if (widget.onSubmitOk != null) {
+            ok = widget.onSubmitOk!(v);
+          } else {
+            widget.onSubmit?.call(v);
+          }
+          if (ok && widget.clearOnSubmit) {
             ctl.clear();
             widget.onChanged?.call('');
           }
