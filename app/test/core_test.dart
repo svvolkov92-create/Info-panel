@@ -156,6 +156,11 @@ void main() {
       expect(m.findTask('a')!['from'], '2026-11-20');
       expect(m.findTask('b')!['date'], '2026-11-20');
       expect(carriedNote(m.findTask('a')!, today), 'не закрыта с 20 ноября, 3 дня');
+      // в прошедших днях перенесённая задача видна как «не успелось»
+      expect(m.carriedThrough(DateTime(2026, 11, 20)).map((t) => t['id']), ['a']);
+      expect(m.carriedThrough(DateTime(2026, 11, 22)).map((t) => t['id']), ['a']);
+      expect(m.carriedThrough(DateTime(2026, 11, 19)), isEmpty);
+      expect(m.carriedThrough(today), isEmpty);
     });
 
     test('в субботу задачи пятницы не переносятся, но видны сегодня', () {

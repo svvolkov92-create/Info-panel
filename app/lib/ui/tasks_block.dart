@@ -142,6 +142,7 @@ class _TasksBlockState extends State<TasksBlock> {
           },
         ),
       if (items.isNotEmpty) _dropEnd(m),
+      ..._carried(context, m, d),
       ValueListenableBuilder(
         valueListenable: m.undoBar,
         builder: (_, text, __) => text == null
@@ -197,6 +198,36 @@ class _TasksBlockState extends State<TasksBlock> {
         ),
       ]),
     );
+  }
+
+  /// Прошедший день: что не успелось и куда переехало.
+  List<Widget> _carried(BuildContext context, PanelModel m, DateTime d) {
+    final list = m.carriedThrough(d);
+    if (list.isEmpty) return const [];
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 2),
+        child: Text('Не успелось, перенесено: ${list.length}', style: T.tiny.copyWith(color: C.warn)),
+      ),
+      for (final t in list)
+        InkWell(
+          onTap: () => Scope.of(context).actions.openCard(context, t['id'] as String),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const SizedBox(width: 16, child: Icon(Icons.arrow_forward, size: 13, color: C.warn)),
+              const SizedBox(width: 4),
+              Expanded(child: Text(t['text'] as String, style: T.norm.copyWith(color: C.muted))),
+              Text(
+                t['done'] == true
+                    ? 'выполнена ${t['done_at'] is String ? shortDate(fromIso(t['done_at'] as String), m.today) : ''}'
+                    : 'теперь ${futureDateText(fromIso(t['date'] as String), m.today)}',
+                style: T.tiny.copyWith(color: t['done'] == true ? C.ok : C.muted),
+              ),
+            ]),
+          ),
+        ),
+    ];
   }
 
   /// Бросить задачу ниже последней — в конец списка.

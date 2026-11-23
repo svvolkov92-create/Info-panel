@@ -297,6 +297,19 @@ class PanelModel extends ChangeNotifier {
     return [...timed, ...items.where((t) => t['time'] == null)];
   }
 
+  /// Задачи, которые в прошедший день d висели незакрытыми и были перенесены дальше.
+  List<Json> carriedThrough(DateTime d) {
+    if (!d.isBefore(today)) return [];
+    final key = iso(d);
+    return [
+      for (final x in tasks)
+        if ((x as Json)['from'] is String &&
+            (x['from'] as String).compareTo(key) <= 0 &&
+            key.compareTo(x['date'] as String) < 0)
+          x,
+    ];
+  }
+
   List<Json> viewTasks(DateTime d) {
     var items = tasksFor(d);
     final f = '${s['filter']}';
