@@ -79,7 +79,6 @@ jobs:
           rm -rf test/widget_test.dart
           sed -i 's/set(BINARY_NAME "desktop_panel")/set(BINARY_NAME "DesktopPanel")/' windows/CMakeLists.txt
           cp ../build/icon.ico windows/runner/resources/app_icon.ico
-          sed -i 's/L"desktop_panel"/L"Информационная панель"/' windows/runner/main.cpp
           set -o pipefail
           flutter build windows --release --build-name "$VER" 2>&1 | tee -a build.log
           ls build/windows/x64/runner/Release
