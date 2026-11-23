@@ -24,8 +24,10 @@ UninstallDisplayIcon={app}\DesktopPanel.exe
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-AppMutex=Local\DesktopPanelSingleInstance
-CloseApplications=yes
+; установка поверх работающей панели: установщик сам закрывает её и после установки запускает снова
+CloseApplications=force
+CloseApplicationsFilter=*.exe,*.dll
+RestartApplications=yes
 
 [Languages]
 Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -55,3 +57,14 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: 
 Filename: "{app}\DesktopPanel.exe"; Description: "Запустить панель"; Flags: nowait postinstall skipifsilent
 
 ; Данные (%APPDATA%\DesktopPanel) не удаляются ни при обновлении, ни при удалении программы.
+
+[Code]
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Code: Integer;
+begin
+  // запасной путь, если панель не закрылась через диспетчер перезапуска Windows;
+  // данные сохраняются через секунду после каждого изменения, так что ничего не теряется
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM DesktopPanel.exe /F', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Result := '';
+end;
