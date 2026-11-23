@@ -26,7 +26,7 @@ jobs:
           flutter pub get 2>&1 | tail -3 | tee check.log
           flutter pub deps --style=compact 2>&1 | grep -E "^- (tray_manager|local_notifier|window_manager|ffi) " | tee -a check.log
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test 2>&1 | tee -a check.log
-          flutter test 2>&1 | tail -60 | tee -a check.log
+          flutter test 2>&1 | tail -400 | tee -a check.log
       - name: Save log
         if: always()
         run: |
