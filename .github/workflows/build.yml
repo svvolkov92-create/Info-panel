@@ -1,0 +1,56 @@
+name: Build installer
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VER=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "VER=0.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build exe
+        run: |
+          python -m pip install --upgrade pyinstaller
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name DesktopPanel `
+            --icon build\icon.ico --distpath dist --workpath build\tmp --specpath build\tmp `
+            desktop_panel.pyw
+
+      - name: Build installer
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$env:VER build\installer.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DesktopPanelSetup-${{ env.VER }}
+          path: dist/DesktopPanelSetup-*.exe
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release create "$GITHUB_REF_NAME" dist/DesktopPanelSetup-*.exe --title "Панель $VER" --generate-notes
