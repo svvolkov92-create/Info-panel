@@ -528,7 +528,7 @@ List<DateTime> holdDates(DateTime today, bool Function(DateTime) isOff, {int max
 /// Вид дня: 'work' | 'off' | 'short' | 'moved' и название праздника.
 (String, String) dayInfo(DateTime d, {Map<String, dynamic>? prodcal, bool useProdCal = true}) {
   final name = fixedHolidays['${d.month}-${d.day}'] ?? '';
-  final cal = useProdCal ? prodcal?['${d.year}'] : null;
+  final Object? cal = (useProdCal && prodcal != null) ? prodcal['${d.year}'] : null;
   if (cal is String && cal.length >= dayOfYear(d)) {
     final code = cal[dayOfYear(d) - 1];
     if (code == '1') return ('off', name);
