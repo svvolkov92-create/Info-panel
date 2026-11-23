@@ -10,7 +10,7 @@ python -m pip install --upgrade pyinstaller || goto :fail
 
 echo [2/3] DesktopPanel.exe...
 python -m PyInstaller --noconfirm --clean --windowed --onedir --name DesktopPanel ^
-  --icon build\icon.ico --distpath dist --workpath build\tmp --specpath build\tmp ^
+  --icon "%~dp0build\icon.ico" --distpath dist --workpath build\tmp --specpath build\tmp ^
   desktop_panel.pyw || goto :fail
 
 echo [3/3] Установщик...

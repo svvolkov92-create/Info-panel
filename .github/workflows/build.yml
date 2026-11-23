@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pyinstaller
           python -m PyInstaller --noconfirm --clean --windowed --onedir --name DesktopPanel `
-            --icon build\icon.ico --distpath dist --workpath build\tmp --specpath build\tmp `
+            --icon "$PWD\build\icon.ico" --distpath dist --workpath build\tmp --specpath build\tmp `
             desktop_panel.pyw
 
       - name: Build installer
