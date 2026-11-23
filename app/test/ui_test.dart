@@ -76,6 +76,7 @@ void main() {
       await tester.pump();
       expect(m.findTask('d')!['done'], before);
 
+      await tester.pump(const Duration(seconds: 10)); // дождаться подсказок и отложенного сохранения
       m.dispose();
     });
   }
