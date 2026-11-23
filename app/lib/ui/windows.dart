@@ -177,8 +177,9 @@ class _MatrixItem extends StatelessWidget {
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(width: 3, height: 14, margin: const EdgeInsets.only(right: 5, top: 2), color: prioColor[t['priority']] ?? Colors.transparent),
         SizedBox(width: 66, child: Text(d == m.today ? 'сегодня' : futureDateText(d, m.today), style: T.tiny.copyWith(color: C.faint))),
-        Expanded(child: Text(taskLine(t), style: T.small)),
-        if (badge != null) Text(badge.$1, style: T.tiny.copyWith(color: levelColor(badge.$2))),
+        Expanded(flex: 3, child: Text(taskLine(t), style: T.small)),
+        if (badge != null)
+          Flexible(child: Text(badge.$1, style: T.tiny.copyWith(color: levelColor(badge.$2)), textAlign: TextAlign.right)),
       ]),
     );
     return TaskMenu(
