@@ -29,10 +29,9 @@ class TasksHeader extends StatelessWidget {
     final est = m.loadMinutes(d);
     final limit = m.dayHoursMinutes();
     final hours = '${(m.s['day_hours'] as num? ?? 8)}'.replaceAll('.0', '').replaceAll('.', ',');
-    return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+    return LayoutBuilder(builder: (context, c) => Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
       Flexible(child: Text(title, style: T.title, overflow: TextOverflow.ellipsis)),
-      const SizedBox(width: 6),
-      Text(dateText, style: T.tiny),
+      if (c.maxWidth > 420) ...[const SizedBox(width: 6), Text(dateText, style: T.tiny)],
       const Spacer(),
       if (est > 0) ...[
         Text('${fmtEst(est)} из $hours ч', style: T.tiny.copyWith(color: est > limit ? C.danger : C.muted)),
@@ -42,11 +41,11 @@ class TasksHeader extends StatelessWidget {
         valueListenable: m.status,
         builder: (_, st, __) {
           if (st != null) return Text(st.$1, style: T.tiny.copyWith(color: levelColor(st.$2)));
-          if (all.isNotEmpty && done == all.length) return Text('всё сделано ✔ $done', style: T.tiny.copyWith(color: C.ok));
+          if (all.isNotEmpty && done == all.length) return Text('всё сделано ✓ $done', style: T.tiny.copyWith(color: C.ok));
           return Text(all.isEmpty ? '' : '$done из ${all.length}', style: T.tiny);
         },
       ),
-    ]);
+    ]));
   }
 }
 
@@ -194,7 +193,7 @@ class _TasksBlockState extends State<TasksBlock> {
             if (m.allTags().isNotEmpty) const PopupMenuDivider(),
             for (final g in m.allTags()) CheckedPopupMenuItem(value: '#$g', checked: f == '#$g', child: Text('#$g')),
           ],
-          child: Text('⚲ $filterLabel', style: T.tiny.copyWith(color: f == 'all' ? C.muted : C.warn)),
+          child: Text('$filterLabel', style: T.tiny.copyWith(color: f == 'all' ? C.muted : C.warn)),
         ),
       ]),
     );
@@ -414,7 +413,7 @@ class _TaskRowState extends State<TaskRow> {
     final subs = [for (final x in (t['subs'] as List?) ?? const []) x as Json];
     if (subs.isNotEmpty) {
       final sd = subs.where((x) => x['done'] == true).length;
-      meta.add(('$sd/${subs.length} ${t['open'] == true ? '▾' : '▸'}', sd == subs.length ? C.ok : C.muted, () => m.toggleOpen(id)));
+      meta.add(('$sd/${subs.length} ${t['open'] == true ? 'подзадач, скрыть' : 'подзадач'}', sd == subs.length ? C.ok : C.muted, () => m.toggleOpen(id)));
     }
     final rule = m.ruleOf(t);
     if (rule != null) meta.add(('↻ ${ruleText(rule)}', C.muted, null));
@@ -422,7 +421,7 @@ class _TaskRowState extends State<TaskRow> {
     if (m.s['pomo_task'] == id) meta.add(('в помодоро', C.rest, null));
     if ('${t['note'] ?? ''}'.trim().isNotEmpty) meta.add(('заметка', C.muted, () => sc.actions.openCard(context, id)));
     final moved = ((t['moves'] as num?) ?? 0).toInt() + ((t['carries'] as num?) ?? 0).toInt();
-    if (moved >= 3 && !done) meta.add(('↷ $moved', C.warn, () => sc.actions.openCard(context, id)));
+    if (moved >= 3 && !done) meta.add(('→ $moved', C.warn, () => sc.actions.openCard(context, id)));
 
     Widget titleArea;
     if (widget.editing) {

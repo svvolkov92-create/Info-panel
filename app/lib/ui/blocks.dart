@@ -142,7 +142,7 @@ class _Day extends StatelessWidget {
         for (final e in evs) TextSpan(text: '\n★ ${e['title']}', style: const TextStyle(color: C.accent)),
         for (final t in items.take(8))
           TextSpan(
-            text: '\n${t['done'] == true ? '✔' : '•'} ${short(taskLine(t), 44)}',
+            text: '\n${t['done'] == true ? '✓' : '•'} ${short(taskLine(t), 44)}',
             style: TextStyle(color: t['done'] == true ? C.muted : (prioColor[t['priority']] ?? C.fg)),
           ),
         if (items.length > 8) TextSpan(text: '\nи ещё ${items.length - 8}', style: const TextStyle(color: C.muted)),
@@ -439,7 +439,7 @@ class _WeekItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
-        compact ? t['text'] as String : '${done ? '✔ ' : ''}${taskLine(t)}',
+        compact ? t['text'] as String : '${done ? '✓ ' : ''}${taskLine(t)}',
         maxLines: compact ? 1 : 3,
         overflow: compact ? TextOverflow.clip : TextOverflow.ellipsis,
         softWrap: !compact,

@@ -141,7 +141,7 @@ class _TaskCardState extends State<TaskCard> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-              Pill(done ? '✔ Выполнена' : 'Не выполнена', done, () => m.toggleTask(id), color: C.ok),
+              Pill(done ? '✓ Выполнена' : 'Не выполнена', done, () => m.toggleTask(id), color: C.ok),
               if (carried != null && !done) Text(carried, style: T.tiny.copyWith(color: C.warn, fontStyle: FontStyle.italic)),
             ]),
           ),
@@ -196,7 +196,7 @@ class _TaskCardState extends State<TaskCard> {
                   section('tags', 'Метки', Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     Wrap(children: [
                       for (final g in (t['tags'] as List?) ?? const [])
-                        Pill('#$g  ✕', true, () => m.removeTag(id, '$g'), color: tagColor('$g')),
+                        Pill('#$g  ×', true, () => m.removeTag(id, '$g'), color: tagColor('$g')),
                     ]),
                     Field(
                       hint: '#метка и Enter (можно несколько)',

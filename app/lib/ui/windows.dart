@@ -301,7 +301,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(widget.hint, style: T.small.copyWith(color: C.muted)),
         const SizedBox(height: 8),
-        if (items.isEmpty) Padding(padding: const EdgeInsets.all(12), child: Center(child: Text('Всё разобрано ✔', style: T.norm.copyWith(color: C.ok)))),
+        if (items.isEmpty) Padding(padding: const EdgeInsets.all(12), child: Center(child: Text('Всё разобрано ✓', style: T.norm.copyWith(color: C.ok)))),
         for (final t in items)
           Container(
             margin: const EdgeInsets.only(bottom: 4),
@@ -389,7 +389,7 @@ class WeeklyReview extends StatelessWidget {
         Text('Переносов за неделю: $moves', style: T.small.copyWith(color: C.muted)),
         if (chronic.isNotEmpty) Text('Часто переносятся — разбить, делегировать или отказаться?', style: T.small.copyWith(color: C.warn)),
         for (final t in chronic.take(5))
-          InkWell(onTap: () => sc.actions.openCard(context, t['id'] as String), child: Text('  ↷ ${moved(t)}  ${short(t['text'] as String, 50)}', style: T.small)),
+          InkWell(onTap: () => sc.actions.openCard(context, t['id'] as String), child: Text('  → ${moved(t)}  ${short(t['text'] as String, 50)}', style: T.small)),
         const SectionLabel('Фокус'),
         Text('Помидоров: $pomos${minutes > 0 ? ', ${fmtEst(minutes)} работы' : ''}', style: T.small.copyWith(color: C.accent)),
         for (final e in tagList.take(5))
@@ -399,7 +399,7 @@ class WeeklyReview extends StatelessWidget {
         for (final g in goals)
           Builder(builder: (_) {
             final (dn, tot) = m.goalProgress(g['id'] as String);
-            return Text('${g['done'] == true ? '✔' : '○'} ${short(g['text'] as String, 40)}${tot > 0 ? ', задач $dn/$tot' : ''}',
+            return Text('${g['done'] == true ? '✓' : '○'} ${short(g['text'] as String, 40)}${tot > 0 ? ', задач $dn/$tot' : ''}',
                 style: T.small.copyWith(color: g['done'] == true ? C.ok : C.fg));
           }),
         const SectionLabel('Оценки времени'),
