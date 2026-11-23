@@ -2,9 +2,135 @@
 // Данные тестовые и живут в памяти; сохранения нет.
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
-void main() => runApp(const ProtoApp());
+// На Windows (и других ПК) панель — виджет без рамки; в браузере — обычная страница-витрина.
+final bool isDesktop = !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS);
+
+// Настройки вида. Хранятся в SharedPreferences (на Windows — в реестре пользователя).
+class Settings extends ChangeNotifier {
+  double scale = 0.85;
+  bool compact = true;
+  double opacity = 1.0;
+  String layer = 'normal'; // normal / top / bottom
+  Set<String> hidden = {};
+  Rect? bounds;
+  SharedPreferences? _prefs;
+
+  static const blocks = {
+    'calendar': 'Календарь',
+    'goals': 'Цели недели',
+    'future': 'Будущие задачи',
+    'week': 'Неделя',
+    'pomo': 'Фокус',
+  };
+
+  Future<void> load() async {
+    try {
+      final p = _prefs = await SharedPreferences.getInstance();
+      scale = p.getDouble('scale') ?? scale;
+      compact = p.getBool('compact') ?? compact;
+      opacity = p.getDouble('opacity') ?? opacity;
+      layer = p.getString('layer') ?? layer;
+      hidden = (p.getStringList('hidden') ?? []).toSet();
+      final b = p.getStringList('bounds');
+      if (b != null && b.length == 4) {
+        final v = b.map(double.tryParse).toList();
+        if (!v.contains(null)) bounds = Rect.fromLTWH(v[0]!, v[1]!, v[2]!, v[3]!);
+      }
+    } catch (e) {
+      debugPrint('settings load failed: $e'); // без сохранённых настроек панель работает с умолчаниями
+    }
+  }
+
+  void update(void Function(Settings s) f) {
+    f(this);
+    notifyListeners();
+    final p = _prefs;
+    if (p == null) return;
+    p.setDouble('scale', scale);
+    p.setBool('compact', compact);
+    p.setDouble('opacity', opacity);
+    p.setString('layer', layer);
+    p.setStringList('hidden', hidden.toList());
+  }
+
+  void saveBounds(Rect r) {
+    bounds = r;
+    _prefs?.setStringList('bounds', [r.left, r.top, r.width, r.height].map((x) => x.toString()).toList());
+  }
+}
+
+final settings = Settings();
+
+Future<void> applyWindowLayer() async {
+  if (!isDesktop) return;
+  await windowManager.setAlwaysOnTop(settings.layer == 'top');
+  await windowManager.setAlwaysOnBottom(settings.layer == 'bottom');
+  await windowManager.setOpacity(settings.opacity);
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await settings.load();
+  if (isDesktop) {
+    await windowManager.ensureInitialized();
+    const options = WindowOptions(
+      size: Size(340, 860),
+      minimumSize: Size(240, 260),
+      skipTaskbar: true,
+      titleBarStyle: TitleBarStyle.hidden,
+      backgroundColor: P.panel,
+      title: 'Информационная панель',
+    );
+    windowManager.waitUntilReadyToShow(options, () async {
+      await windowManager.setAsFrameless();
+      final b = settings.bounds;
+      if (b != null) {
+        await windowManager.setBounds(b);
+      } else {
+        await windowManager.setAlignment(Alignment.topRight);
+      }
+      await applyWindowLayer();
+      await windowManager.show();
+    });
+  }
+  runApp(const ProtoApp());
+}
+
+// Масштаб всего интерфейса: раскладываем в увеличенной «логической» области и сжимаем при отрисовке.
+class Scaled extends StatelessWidget {
+  const Scaled({super.key, required this.scale, required this.child});
+  final double scale;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, c) {
+      final size = Size(c.maxWidth / scale, c.maxHeight / scale);
+      return ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.topLeft,
+          minWidth: size.width,
+          maxWidth: size.width,
+          minHeight: size.height,
+          maxHeight: size.height,
+          child: Transform.scale(
+            scale: scale,
+            alignment: Alignment.topLeft,
+            child: MediaQuery(data: MediaQuery.of(context).copyWith(size: size), child: child),
+          ),
+        ),
+      );
+    });
+  }
+}
 
 // Палитра текущей панели (panel/core.py), чтобы сравнивать с Tkinter один в один.
 class P {
@@ -137,18 +263,20 @@ class ProtoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return ListenableBuilder(listenable: settings, builder: (context, _) => MaterialApp(
       title: 'Информационная панель — прототип',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => Scaled(scale: settings.scale, child: child!),
       theme: ThemeData(
         brightness: Brightness.dark,
+        visualDensity: settings.compact ? VisualDensity.compact : VisualDensity.standard,
         fontFamily: 'Inter',
         scaffoldBackgroundColor: P.bg,
         colorScheme: const ColorScheme.dark(primary: P.accent, surface: P.card),
         tooltipTheme: const TooltipThemeData(waitDuration: Duration(milliseconds: 600)),
       ),
       home: const Home(),
-    );
+    ));
   }
 }
 
@@ -158,7 +286,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WindowListener {
   final tasks = demoTasks();
   DateTime selected = today;
   final collapsed = <String>{};
@@ -176,13 +304,25 @@ class _HomeState extends State<Home> {
         if (pomoRunning && pomoLeft > 0) pomoLeft--;
       });
     });
+    if (isDesktop) windowManager.addListener(this);
   }
 
   @override
   void dispose() {
     clock.cancel();
+    if (isDesktop) windowManager.removeListener(this);
     super.dispose();
   }
+
+  Future<void> _rememberBounds() async => settings.saveBounds(await windowManager.getBounds());
+
+  @override
+  void onWindowMoved() => _rememberBounds();
+
+  @override
+  void onWindowResized() => _rememberBounds();
+
+  double get gap => settings.compact ? 6 : 10;
 
   List<Task> tasksOn(DateTime d) => tasks.where((t) => t.date == d).toList();
   int hoursLoad(DateTime d) => tasksOn(d).where((t) => !t.done).fold(0, (s, t) => s + t.est);
@@ -194,7 +334,7 @@ class _HomeState extends State<Home> {
       content: Text(text, style: const TextStyle(color: P.fg)),
       backgroundColor: P.hover,
       behavior: SnackBarBehavior.floating,
-      width: 360,
+      width: isDesktop ? null : 360,
       duration: const Duration(seconds: 6),
       action: SnackBarAction(label: 'Отменить', textColor: P.accent, onPressed: () => setState(undo)),
     ));
@@ -229,6 +369,27 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    if (isDesktop) {
+      // виджет: панель на всё окно, снизу справа — уголок для изменения размера
+      return Scaffold(
+        backgroundColor: P.panel,
+        body: Stack(children: [
+          Positioned.fill(child: _panel()),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.resizeDownRight,
+              child: GestureDetector(
+                onPanStart: (_) => windowManager.startResizing(ResizeEdge.bottomRight),
+                child: const SizedBox(
+                    width: 16, height: 16, child: Icon(Icons.south_east, size: 11, color: P.faint)),
+              ),
+            ),
+          ),
+        ]),
+      );
+    }
     final wide = MediaQuery.sizeOf(context).width >= 980;
     final panel = SizedBox(width: 400, child: _panel());
     return Scaffold(
@@ -261,26 +422,35 @@ class _HomeState extends State<Home> {
   }
 
   Widget _panel() {
+    final r = isDesktop ? 0.0 : 14.0;
     return Container(
       decoration: BoxDecoration(
         color: P.panel,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 30, offset: Offset(0, 12))],
+        borderRadius: BorderRadius.circular(r),
+        boxShadow: isDesktop
+            ? null
+            : const [BoxShadow(color: Color(0x88000000), blurRadius: 30, offset: Offset(0, 12))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: ListView(padding: const EdgeInsets.fromLTRB(12, 14, 12, 12), children: [
+        borderRadius: BorderRadius.circular(r),
+        child: ListView(padding: EdgeInsets.fromLTRB(gap + 2, gap + 4, gap + 2, gap + 2), children: [
           _clock(),
-          const SizedBox(height: 10),
-          _block('calendar', 'Календарь', _calendar(),
+          SizedBox(height: gap),
+          if (!settings.hidden.contains('calendar')) _block('calendar', 'Календарь', _calendar(),
               summary: '${today.day} ${months[today.month - 1]}, ${wdShort[today.weekday - 1]}'),
-          _block('goals', 'Цели недели', _goals(), trailing: const Text('1/3', style: TextStyle(color: P.muted, fontSize: 12))),
+          if (!settings.hidden.contains('goals')) _block('goals', 'Цели недели', _goals(), trailing: const Text('1/3', style: TextStyle(color: P.muted, fontSize: 12))),
           _block('tasks', '', TasksBlock(state: this)),
-          _block('future', 'Будущие задачи', _future(),
+          if (!settings.hidden.contains('future')) _block('future', 'Будущие задачи', _future(),
               trailing: Text('${tasks.where((t) => t.date.isAfter(today) && !t.done).length}',
                   style: const TextStyle(color: P.muted, fontSize: 12))),
-          _block('week', 'Неделя', WeekStrip(tasks: tasks)),
-          _block('pomo', 'Фокус', _pomo(),
+          if (!settings.hidden.contains('week'))
+            _block('week', 'Неделя', WeekStrip(tasks: tasks),
+                trailing: InkWell(
+                  onTap: _openWeek,
+                  child: const Padding(
+                      padding: EdgeInsets.all(2), child: Icon(Icons.open_in_full, size: 14, color: P.muted)),
+                )),
+          if (!settings.hidden.contains('pomo')) _block('pomo', 'Фокус', _pomo(),
               titleColor: P.accent, summary: '${_clockText(pomoLeft)}${pomoRunning ? '' : ', пауза'}'),
         ]),
       ),
@@ -289,16 +459,49 @@ class _HomeState extends State<Home> {
 
   String _clockText(int s) => '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
 
+  void _openWeek() {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(child: WeekWindow(tasks: tasks, onOpen: openCard)),
+      ),
+    );
+  }
+
+  Widget _headerButton(IconData icon, String tip, VoidCallback onTap) => Tooltip(
+        message: tip,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(padding: const EdgeInsets.all(4), child: Icon(icon, size: 16, color: P.muted)),
+        ),
+      );
+
   Widget _clock() {
     final hh = now.hour.toString().padLeft(2, '0'), mm = now.minute.toString().padLeft(2, '0');
-    return Padding(
+    final head = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('$hh:$mm', style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w300, height: 1)),
-        const SizedBox(height: 6),
-        Text('${wdFull[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}',
-            style: const TextStyle(color: P.muted, fontSize: 13)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('$hh:$mm',
+                style: TextStyle(fontSize: settings.compact ? 32 : 44, fontWeight: FontWeight.w300, height: 1)),
+            SizedBox(height: settings.compact ? 3 : 6),
+            Text('${wdFull[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}',
+                style: const TextStyle(color: P.muted, fontSize: 12)),
+          ]),
+        ),
+        _headerButton(Icons.tune, 'Настройки вида', () => showDialog(context: context, builder: (_) => const SettingsDialog())),
+        if (isDesktop) _headerButton(Icons.close, 'Закрыть панель', () => windowManager.close()),
       ]),
+    );
+    if (!isDesktop) return head;
+    // за шапку с часами виджет перетаскивается по экрану
+    return MouseRegion(
+      cursor: SystemMouseCursors.move,
+      child: GestureDetector(onPanStart: (_) => windowManager.startDragging(), child: head),
     );
   }
 
@@ -306,8 +509,8 @@ class _HomeState extends State<Home> {
       {Widget? trailing, String? summary, Color titleColor = P.fg}) {
     final shut = collapsed.contains(key);
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      margin: EdgeInsets.only(bottom: gap),
+      padding: settings.compact ? const EdgeInsets.fromLTRB(10, 5, 10, 7) : const EdgeInsets.fromLTRB(12, 8, 12, 10),
       decoration: BoxDecoration(color: P.card, borderRadius: BorderRadius.circular(10)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (title.isNotEmpty)
@@ -695,7 +898,7 @@ class _TaskRowState extends State<TaskRow> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         margin: const EdgeInsets.symmetric(vertical: 1),
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        padding: EdgeInsets.symmetric(vertical: settings.compact ? 2 : 4, horizontal: 2),
         decoration: BoxDecoration(color: hover ? P.hover : Colors.transparent, borderRadius: BorderRadius.circular(6)),
         child: InkWell(
           onTap: () => s.openCard(t),
@@ -1052,6 +1255,93 @@ class _TaskCardState extends State<TaskCard> {
           ),
         ]),
       ),
+    );
+  }
+}
+
+
+// ---------- настройки вида ----------
+class SettingsDialog extends StatelessWidget {
+  const SettingsDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        Widget label(String t) => Padding(
+            padding: const EdgeInsets.only(top: 14, bottom: 4),
+            child: Text(t, style: const TextStyle(color: P.muted, fontSize: 12)));
+        return Dialog(
+          backgroundColor: P.panel,
+          insetPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+                Row(children: [
+                  const Expanded(child: Text('Вид панели', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: P.muted, size: 18)),
+                ]),
+                label('Масштаб: ${(settings.scale * 100).round()} %'),
+                Slider(
+                  value: settings.scale,
+                  min: 0.6,
+                  max: 1.2,
+                  divisions: 12,
+                  onChanged: (v) => settings.update((s) => s.scale = v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Компактно: меньше отступов'),
+                  value: settings.compact,
+                  onChanged: (v) => settings.update((s) => s.compact = v),
+                ),
+                if (isDesktop) ...[
+                  label('Прозрачность: ${(settings.opacity * 100).round()} %'),
+                  Slider(
+                    value: settings.opacity,
+                    min: 0.5,
+                    max: 1.0,
+                    divisions: 10,
+                    onChanged: (v) {
+                      settings.update((s) => s.opacity = v);
+                      windowManager.setOpacity(v);
+                    },
+                  ),
+                  label('Где держать панель'),
+                  SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(value: 'bottom', label: Text('На столе')),
+                      ButtonSegment(value: 'normal', label: Text('Обычно')),
+                      ButtonSegment(value: 'top', label: Text('Поверх')),
+                    ],
+                    selected: {settings.layer},
+                    onSelectionChanged: (v) {
+                      settings.update((s) => s.layer = v.first);
+                      applyWindowLayer();
+                    },
+                  ),
+                ],
+                label('Блоки'),
+                for (final e in Settings.blocks.entries)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(e.value),
+                    value: !settings.hidden.contains(e.key),
+                    onChanged: (v) => settings.update((s) => v == true ? s.hidden.remove(e.key) : s.hidden.add(e.key)),
+                  ),
+              ]),
+            ),
+          ),
+        );
+      },
     );
   }
 }

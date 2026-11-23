@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  window_manager: any
+  shared_preferences: any
 
 flutter:
   uses-material-design: true
