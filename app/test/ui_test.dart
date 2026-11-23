@@ -62,6 +62,16 @@ void main() {
         await tester.pumpAndSettle();
       }
 
+      // щелчок по дню календаря меняет заголовок списка задач
+      await tester.tap(find.text('25').first);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(m.selected, DateTime(2026, 11, 25));
+      expect(find.text('Задачи на 25 ноября'), findsOneWidget);
+      await tester.tap(find.text('сегодня').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Задачи на сегодня'), findsOneWidget);
+
       // сворачивание блока
       await tester.tap(find.text('Календарь'));
       await tester.pumpAndSettle();

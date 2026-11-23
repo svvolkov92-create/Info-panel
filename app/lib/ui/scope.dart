@@ -11,8 +11,10 @@ class Scope extends InheritedWidget {
 
   static Scope of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<Scope>()!;
 
+  /// Scope создаётся заново при каждом изменении модели (PanelApp слушает модель),
+  /// поэтому все блоки перерисовываются: данные меняются внутри тех же объектов.
   @override
-  bool updateShouldNotify(Scope old) => old.m != m || old.actions != actions;
+  bool updateShouldNotify(Scope old) => true;
 }
 
 /// Окна и диалоги, которые открываются из разных блоков.
