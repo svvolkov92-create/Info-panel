@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   window_manager: ^0.5.1
   ffi: ^2.1.0
+  tray_manager: any
+  local_notifier: any
 
 dev_dependencies:
   flutter_test:
@@ -18,6 +20,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/tray.ico
   fonts:
     - family: Inter
       fonts:

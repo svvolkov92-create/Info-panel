@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/core.dart';
+import '../core/model.dart';
 import '../core/storage.dart';
 import 'desktop.dart';
 import 'scope.dart';
@@ -122,6 +123,8 @@ class SettingsDialog extends StatelessWidget {
                     stepper('Длинный после помидоров', 'cycle', 1, 12),
                     check('Сразу начинать перерыв', 'auto_break', def: false),
                     check('Режим фокуса во время работы', 'focus_mode'),
+                    const SectionLabel('Звуки помодоро'),
+                    for (final (kind, label) in const [('work', 'Конец работы'), ('break', 'Конец перерыва')]) _soundRow(m, kind, label),
                     const SectionLabel('Планирование'),
                     stepper('Лимит «Сделать сейчас»', 'q1_limit', 1, 50),
                     stepper('Рабочих часов в дне', 'day_hours', 1, 24),
@@ -129,6 +132,22 @@ class SettingsDialog extends StatelessWidget {
                     check('Производственный календарь РФ (праздники, переносы)', 'prod_cal'),
                     check('Утренний разбор незакрытых задач', 'review'),
                     check('Обзор недели по пятницам после 15:00', 'weekly_review'),
+                    if (isDesktop) ...[
+                      const SectionLabel('Система'),
+                      InkWell(
+                        onTap: () => desk?.setClickThrough(s['click_through'] != true),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(children: [
+                            Icon(s['click_through'] == true ? Icons.check_box : Icons.check_box_outline_blank, size: 16,
+                                color: s['click_through'] == true ? C.accent : C.muted),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('Сквозные клики: панель не мешает щёлкать по рабочему столу, нажимать — с зажатым Ctrl', style: T.small)),
+                          ]),
+                        ),
+                      ),
+                      _AutostartRow(),
+                    ],
                     if (Storage.persistent) ...[
                       const SectionLabel('Данные'),
                       Text('Папка: ${m.storage.dataDir}', style: T.tiny),
@@ -147,6 +166,72 @@ class SettingsDialog extends StatelessWidget {
             ),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+Widget _soundRow(PanelModel m, String kind, String label) {
+  final sounds = (m.s['sounds'] as Map?) ?? {};
+  final cfg = (sounds[kind] as Map?) ?? {'file': 'default'};
+  final cur = '${cfg['file'] ?? 'default'}';
+  final files = m.storage.systemSounds();
+  String nameOf(String path) {
+    final n = path.split(RegExp(r'[\\/]')).last;
+    return n.toLowerCase().endsWith('.wav') ? n.substring(0, n.length - 4) : n;
+  }
+
+  final items = <String>['default', 'none', ...files, if (cur != 'default' && cur != 'none' && !files.contains(cur)) cur];
+  return Row(children: [
+    SizedBox(width: 130, child: Text(label, style: T.small)),
+    Expanded(
+      child: DropdownButton<String>(
+        value: cur,
+        isExpanded: true,
+        isDense: true,
+        dropdownColor: C.card,
+        items: [
+          for (final f in items)
+            DropdownMenuItem(
+              value: f,
+              child: Text(f == 'default' ? 'Системный звук' : f == 'none' ? 'Без звука' : nameOf(f), style: T.small, overflow: TextOverflow.ellipsis),
+            ),
+        ],
+        onChanged: (v) {
+          final all = Map<String, dynamic>.from(sounds);
+          all[kind] = {...Map<String, dynamic>.from(cfg), 'file': v};
+          m.setSetting('sounds', all);
+        },
+      ),
+    ),
+    IconBtn(Icons.play_arrow_rounded, 'Послушать', () => m.storage.playSound(cur), color: C.accent),
+  ]);
+}
+
+class _AutostartRow extends StatefulWidget {
+  @override
+  State<_AutostartRow> createState() => _AutostartRowState();
+}
+
+class _AutostartRowState extends State<_AutostartRow> {
+  bool? on;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = Scope.of(context).m;
+    on ??= m.storage.autostartEnabled();
+    return InkWell(
+      onTap: () {
+        m.storage.setAutostart(!on!);
+        setState(() => on = m.storage.autostartEnabled());
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(children: [
+          Icon(on! ? Icons.check_box : Icons.check_box_outline_blank, size: 16, color: on! ? C.accent : C.muted),
+          const SizedBox(width: 8),
+          Expanded(child: Text('Запускать вместе с Windows', style: T.small)),
+        ]),
       ),
     );
   }

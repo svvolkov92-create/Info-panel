@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'core/model.dart';
 import 'ui/app.dart';
 import 'ui/desktop.dart';
+import 'ui/system.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,8 +31,10 @@ Future<void> main(List<String> args) async {
     desk = DesktopWindow(m);
     await desk.init();
   }
+  final sys = SystemIntegration(m, desk);
+  await sys.init();
   m.start();
-  runApp(PanelApp(m: m, desk: desk));
+  runApp(PanelApp(m: m, desk: desk, sys: sys));
 }
 
 /// Запущена прежняя (Python) версия панели — работать с одними данными вдвоём нельзя.

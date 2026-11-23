@@ -502,8 +502,28 @@ class _TaskRowState extends State<TaskRow> {
       ),
     );
 
+    // предпросмотр заметки и подзадач при наведении — без открытия карточки
+    final noteText = '${t['note'] ?? ''}'.trim();
+    final rowWithTip = (noteText.isEmpty && subs.isEmpty) || widget.editing
+        ? row
+        : Tooltip(
+            waitDuration: const Duration(milliseconds: 650),
+            preferBelow: true,
+            padding: const EdgeInsets.all(10),
+            constraints: const BoxConstraints(maxWidth: 340),
+            richMessage: TextSpan(style: const TextStyle(fontSize: 12, color: C.fg, height: 1.4), children: [
+              if (noteText.isNotEmpty) TextSpan(text: short(noteText, 300)),
+              if (noteText.isNotEmpty && subs.isNotEmpty) const TextSpan(text: '\n'),
+              for (final sb in subs)
+                TextSpan(
+                  text: '\n${sb['done'] == true ? '✓' : '•'}  ${sb['text']}',
+                  style: TextStyle(color: sb['done'] == true ? C.muted : C.fg),
+                ),
+            ]),
+            child: row,
+          );
     final body = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      row,
+      rowWithTip,
       if (t['open'] == true && !widget.editing) _subs(m, id, subs, font),
     ]);
 

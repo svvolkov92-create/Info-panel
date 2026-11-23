@@ -26,4 +26,10 @@ class Storage {
   static const windowTitle = 'Информационная панель';
   bool acquireSingleInstance({bool wait = false}) => true;
   bool activateExisting() => false;
+
+  List<String> systemSounds() => [];
+  void playSound(String file) {}
+  bool ctrlPressed() => false;
+  bool autostartEnabled() => false;
+  void setAutostart(bool on) {}
 }

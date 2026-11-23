@@ -190,4 +190,61 @@ class Storage {
       calloc.free(title);
     }
   }
+
+  // ---------- звуки ----------
+  /// Звуки Windows из C:\Windows\Media.
+  List<String> systemSounds() {
+    if (!Platform.isWindows) return [];
+    final dir = Directory('${Platform.environment['WINDIR'] ?? r'C:\Windows'}\\Media');
+    if (!dir.existsSync()) return [];
+    final list = dir.listSync().whereType<File>().map((f) => f.path).where((p) => p.toLowerCase().endsWith('.wav')).toList();
+    list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list;
+  }
+
+  /// file: 'default' — системный звук, 'none' — тишина, иначе путь к .wav.
+  void playSound(String file) {
+    if (!Platform.isWindows || file == 'none') return;
+    try {
+      if (file == 'default' || !File(file).existsSync()) {
+        final u32 = DynamicLibrary.open('user32.dll');
+        u32.lookupFunction<Int32 Function(Uint32), int Function(int)>('MessageBeep')(0x40); // MB_ICONINFORMATION
+        return;
+      }
+      final winmm = DynamicLibrary.open('winmm.dll');
+      final play = winmm.lookupFunction<Int32 Function(Pointer<Utf16>, IntPtr, Uint32), int Function(Pointer<Utf16>, int, int)>('PlaySoundW');
+      final path = file.toNativeUtf16();
+      // SND_FILENAME | SND_ASYNC | SND_NODEFAULT; строку не освобождаем сразу — звук играет асинхронно
+      play(path, 0, 0x20000 | 0x1 | 0x2);
+      Future<void>.delayed(const Duration(seconds: 30), () => calloc.free(path));
+    } catch (e) {
+      logError('Звук не проигрался: $file\n$e');
+    }
+  }
+
+  // ---------- клавиши ----------
+  bool ctrlPressed() {
+    if (!Platform.isWindows) return false;
+    final u32 = DynamicLibrary.open('user32.dll');
+    final state = u32.lookupFunction<Int16 Function(Int32), int Function(int)>('GetAsyncKeyState')(0x11);
+    return (state & 0x8000) != 0;
+  }
+
+  // ---------- автозапуск ----------
+  static const _runKey = r'HKCU\Software\Microsoft\Windows\CurrentVersion\Run';
+
+  bool autostartEnabled() {
+    if (!Platform.isWindows) return false;
+    final r = Process.runSync('reg', ['query', _runKey, '/v', 'DesktopPanel']);
+    return r.exitCode == 0 && '${r.stdout}'.toLowerCase().contains(Platform.resolvedExecutable.toLowerCase());
+  }
+
+  void setAutostart(bool on) {
+    if (!Platform.isWindows) return;
+    if (on) {
+      Process.runSync('reg', ['add', _runKey, '/v', 'DesktopPanel', '/t', 'REG_SZ', '/d', '"${Platform.resolvedExecutable}"', '/f']);
+    } else {
+      Process.runSync('reg', ['delete', _runKey, '/v', 'DesktopPanel', '/f']);
+    }
+  }
 }

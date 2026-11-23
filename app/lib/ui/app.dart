@@ -9,15 +9,17 @@ import 'desktop.dart';
 import 'panel.dart';
 import 'scope.dart';
 import 'settings.dart';
+import 'system.dart';
 import 'task_card.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import 'windows.dart';
 
 class PanelApp extends StatelessWidget {
-  const PanelApp({super.key, required this.m, this.desk});
+  const PanelApp({super.key, required this.m, this.desk, this.sys});
   final PanelModel m;
   final DesktopWindow? desk;
+  final SystemIntegration? sys;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,7 @@ class PanelApp extends StatelessWidget {
           actions: actions,
           child: Scaled(scale: ((m.s['ui_scale'] as num?) ?? 1).toDouble().clamp(0.5, 1.6), child: child!),
         ),
-        home: Home(desk: desk, actions: actions),
+        home: Home(desk: desk, actions: actions, sys: sys),
       ),
     );
   }
@@ -69,9 +71,10 @@ class Scaled extends StatelessWidget {
 }
 
 class Home extends StatefulWidget {
-  const Home({super.key, this.desk, required this.actions});
+  const Home({super.key, this.desk, required this.actions, this.sys});
   final DesktopWindow? desk;
   final AppActions actions;
+  final SystemIntegration? sys;
   @override
   State<Home> createState() => _HomeState();
 }
@@ -92,7 +95,20 @@ class _HomeState extends State<Home> {
       }
       if (kind == 'weekly') widget.actions.openWeeklyReview(context);
     });
-    sounds ??= m.notices.listen((_) => SystemSound.play(SystemSoundType.alert));
+    sounds ??= m.notices.listen((n) {
+      final sys = widget.sys;
+      if (sys != null) {
+        sys.notify(n);
+      } else {
+        SystemSound.play(SystemSoundType.alert);
+      }
+    });
+    widget.sys?.onOpenTask = (id) {
+      if (mounted) widget.actions.openCard(context, id);
+    };
+    widget.sys?.onSettings = () {
+      if (mounted) widget.actions.openSettings(context);
+    };
     // разбор хвостов при запуске: модель уже знает о нём, а окно открываем, когда интерфейс готов
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && m.pendingMorningReview) {

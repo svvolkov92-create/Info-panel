@@ -111,7 +111,8 @@ class Header extends StatelessWidget {
           ],
         ),
         IconBtn(Icons.tune, 'Настройки', () => sc.actions.openSettings(context)),
-        if (desk != null && desk!.widgetMode) IconBtn(Icons.close, 'Закрыть панель', desk!.close),
+        if (desk != null && desk!.widgetMode)
+          IconBtn(Icons.close, desk!.hasTray ? 'Скрыть в трей (вернуть — щелчок по значку)' : 'Закрыть панель', desk!.close),
       ]),
     );
     if (desk == null || !desk!.widgetMode) return head;

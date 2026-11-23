@@ -21,6 +21,10 @@ class DesktopWindow with WindowListener {
   bool get widgetMode => m.s['ui_mode'] != 'window';
   String get _boundsKey => widgetMode ? 'ui_bounds' : 'ui_bounds_window';
 
+  bool hasTray = false;
+  Timer? _ctPoll;
+  bool _ctIgnoring = false;
+
   Rect? _restore; // размер до временного расширения под большое окно
   int _room = 0;
   Timer? _boundsTimer;
@@ -45,6 +49,49 @@ class DesktopWindow with WindowListener {
     });
     windowManager.addListener(this);
     await windowManager.setPreventClose(true);
+    if (m.s['click_through'] == true) await setClickThrough(true);
+  }
+
+  Future<void> showPanel() async {
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
+  Future<void> hidePanel() => windowManager.hide();
+
+  Future<void> toggleVisible() async {
+    if (await windowManager.isVisible()) {
+      await hidePanel();
+    } else {
+      await showPanel();
+    }
+  }
+
+  Future<void> quit() async {
+    _boundsTimer?.cancel();
+    _ctPoll?.cancel();
+    await _saveBounds();
+    m.flushSave();
+    await windowManager.setPreventClose(false);
+    await windowManager.destroy();
+  }
+
+  /// Сквозные клики: щелчки проходят сквозь панель на рабочий стол; с зажатым Ctrl панель снова кликабельна.
+  Future<void> setClickThrough(bool on) async {
+    m.setSetting('click_through', on);
+    _ctPoll?.cancel();
+    if (!on) {
+      _ctIgnoring = false;
+      await windowManager.setIgnoreMouseEvents(false);
+      return;
+    }
+    _ctPoll = Timer.periodic(const Duration(milliseconds: 120), (_) async {
+      final ignore = !m.storage.ctrlPressed();
+      if (ignore != _ctIgnoring) {
+        _ctIgnoring = ignore;
+        await windowManager.setIgnoreMouseEvents(ignore);
+      }
+    });
   }
 
   Future<void> _applyBounds() async {
@@ -108,19 +155,23 @@ class DesktopWindow with WindowListener {
     _boundsTimer = Timer(const Duration(milliseconds: 400), _saveBounds);
   }
 
+  /// Крестик окна: при значке в трее панель прячется, выход — из меню трея.
   @override
   void onWindowClose() async {
-    _boundsTimer?.cancel();
-    await _saveBounds();
-    m.flushSave();
-    await windowManager.destroy();
+    if (hasTray) {
+      await _saveBounds();
+      m.flushSave();
+      await hidePanel();
+      return;
+    }
+    await quit();
   }
 
   void startDrag() => windowManager.startDragging();
 
   void startResize(ResizeEdge edge) => windowManager.startResizing(edge);
 
-  Future<void> close() => windowManager.close();
+  Future<void> close() async => hasTray ? hidePanel() : quit();
 
   Future<void> minimize() => windowManager.minimize();
 
