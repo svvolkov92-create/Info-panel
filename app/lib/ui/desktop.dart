@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../core/model.dart';
@@ -237,8 +238,7 @@ class DesktopWindow with WindowListener {
     _room++;
     try {
       if (b.width < w || b.height < h) {
-        final nw = math.max(b.width, w), nh = math.max(b.height, h);
-        await windowManager.setBounds(Rect.fromLTWH(b.right - nw, b.top, nw, nh));
+        await windowManager.setBounds(await _roomRect(b, w, h));
       }
       if (bottomLayer) await windowManager.setAlwaysOnBottom(false);
       await windowManager.focus();
@@ -251,5 +251,31 @@ class DesktopWindow with WindowListener {
         await applyLayer();
       }
     }
+  }
+
+  /// Куда раздвинуть виджет: в сторону, где есть место, и не дальше краёв экрана.
+  Future<Rect> _roomRect(Rect b, double w, double h) async {
+    var screen = Rect.fromLTWH(0, 0, 1920, 1040);
+    try {
+      final displays = await screenRetriever.getAllDisplays();
+      for (final d in displays) {
+        final pos = d.visiblePosition ?? Offset.zero;
+        final size = d.visibleSize ?? d.size;
+        final r = pos & size;
+        if (r.contains(b.center)) {
+          screen = r;
+          break;
+        }
+        if (d == displays.first) screen = r;
+      }
+    } catch (e) {
+      m.storage.logError('Не удалось узнать размер экрана: $e');
+    }
+    final nw = math.min(math.max(b.width, w), screen.width);
+    final nh = math.min(math.max(b.height, h), screen.height);
+    // по умолчанию растём влево (виджет обычно справа), но не за левый край экрана
+    final left = (b.right - nw).clamp(screen.left, screen.right - nw);
+    final top = b.top.clamp(screen.top, screen.bottom - nh);
+    return Rect.fromLTWH(left.toDouble(), top.toDouble(), nw, nh);
   }
 }
