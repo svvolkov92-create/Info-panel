@@ -32,4 +32,7 @@ class Storage {
   bool ctrlPressed() => false;
   bool autostartEnabled() => false;
   void setAutostart(bool on) {}
+
+  bool embedInDesktop() => false;
+  void releaseFromDesktop() {}
 }

@@ -90,7 +90,8 @@ class SettingsDialog extends StatelessWidget {
                       Text('Где держать', style: T.small),
                       const SizedBox(height: 4),
                       Wrap(children: [
-                        Pill('Под окнами', layer == 'bottom' || layer == 'desktop', () => desk?.setLayer('bottom')),
+                        Pill('Под ярлыками', layer == 'desktop', () => desk?.setLayer('desktop')),
+                        Pill('Под окнами', layer == 'bottom', () => desk?.setLayer('bottom')),
                         Pill('Обычно', layer == 'normal', () => desk?.setLayer('normal')),
                         Pill('Поверх всех окон', layer == 'top', () => desk?.setLayer('top')),
                       ]),

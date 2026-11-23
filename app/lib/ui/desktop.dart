@@ -107,16 +107,63 @@ class DesktopWindow with WindowListener {
     await windowManager.setAlignment(widgetMode ? Alignment.topRight : Alignment.center);
   }
 
+  bool embedded = false;
+
   Future<void> applyLayer() async {
     final layer = m.s['ui_layer'];
+    if (layer == 'desktop') {
+      if (embedded) return;
+      await windowManager.setAlwaysOnTop(false);
+      await windowManager.setAlwaysOnBottom(false);
+      await windowManager.setOpacity(1); // под ярлыками полупрозрачность невозможна
+      embedded = m.storage.embedInDesktop();
+      if (!embedded) {
+        m.s['ui_layer'] = 'bottom';
+        m.save();
+        m.notice(Notice('Не получилось', 'Не нашёл слой рабочего стола под ярлыками в этой версии Windows. '
+            'Панель оставлена «под окнами». Подробности в журнале ошибок.', kind: 'danger', seconds: 15));
+        await windowManager.setAlwaysOnBottom(true);
+      } else if (m.s['desk_confirmed'] != true) {
+        _askDeskConfirm();
+      }
+      return;
+    }
+    if (embedded) {
+      m.storage.releaseFromDesktop();
+      embedded = false;
+    }
     await windowManager.setAlwaysOnTop(layer == 'top');
-    await windowManager.setAlwaysOnBottom(layer == 'bottom' || layer == 'desktop');
+    await windowManager.setAlwaysOnBottom(layer == 'bottom');
     await windowManager.setOpacity(((m.s['alpha'] as num?) ?? 1).toDouble().clamp(0.3, 1.0));
+  }
+
+  /// Не видно панель под ярлыками — сама вернётся через 15 секунд.
+  void _askDeskConfirm() {
+    var answered = false;
+    m.notice(Notice('Панель видна под ярлыками?', 'Если нет — ничего не нажимайте: через 15 секунд она вернётся сама.',
+        seconds: 15,
+        actions: [
+          ('Да, видна', () {
+            answered = true;
+            m.setSetting('desk_confirmed', true);
+          }),
+          ('Нет, вернуть', () {
+            answered = true;
+            setLayer('bottom');
+          }),
+        ]));
+    Timer(const Duration(milliseconds: 15500), () {
+      if (!answered && embedded) {
+        setLayer('bottom');
+        m.notice(Notice('Вернул панель', 'Под ярлыками её не было видно, поэтому режим выключен. '
+            'Пришлите, пожалуйста, журнал ошибок — там сведения о рабочем столе.', kind: 'warn', seconds: 30));
+      }
+    });
   }
 
   Future<void> setOpacity(double v) async {
     m.setSetting('alpha', v);
-    await windowManager.setOpacity(v);
+    if (!embedded) await windowManager.setOpacity(v);
   }
 
   Future<void> setLayer(String layer) async {
@@ -167,7 +214,9 @@ class DesktopWindow with WindowListener {
     await quit();
   }
 
-  void startDrag() => windowManager.startDragging();
+  void startDrag() {
+    if (!embedded) windowManager.startDragging(); // под ярлыками окно дочернее — двигать нельзя
+  }
 
   void startResize(ResizeEdge edge) => windowManager.startResizing(edge);
 
@@ -181,7 +230,8 @@ class DesktopWindow with WindowListener {
     final scale = ((m.s['ui_scale'] as num?) ?? 1).toDouble();
     final w = need.width * scale + 24, h = need.height * scale + 24;
     final b = await windowManager.getBounds();
-    final bottomLayer = m.s['ui_layer'] == 'bottom' || m.s['ui_layer'] == 'desktop';
+    final bottomLayer = m.s['ui_layer'] == 'bottom';
+    if (embedded) return open(); // встроенное в рабочий стол окно не раздвигаем
     if (b.width >= w && b.height >= h && !bottomLayer) return open();
     if (_room == 0) _restore = b;
     _room++;

@@ -50,12 +50,14 @@ String newId() {
 
 /// Уведомление для интерфейса: напоминание, конец помидора и т. п.
 class Notice {
-  Notice(this.title, this.text, {this.kind = 'info', this.taskId, this.sound});
+  Notice(this.title, this.text, {this.kind = 'info', this.taskId, this.sound, this.actions = const [], this.seconds});
   final String title;
   final String text;
-  final String kind; // info | remind | rest | danger
+  final String kind; // info | remind | rest | danger | warn
   final String? taskId;
   final String? sound; // work | break | null — системный
+  final List<(String, void Function())> actions; // кнопки, после нажатия уведомление закрывается
+  final int? seconds; // сколько показывать
 }
 
 class PanelModel extends ChangeNotifier {
@@ -104,6 +106,8 @@ class PanelModel extends ChangeNotifier {
 
   final _notices = StreamController<Notice>.broadcast();
   Stream<Notice> get notices => _notices.stream;
+
+  void notice(Notice n) => _notices.add(n);
 
   /// Утренний разбор и обзор недели — интерфейс открывает окна по этому сигналу.
   final _reviews = StreamController<String>.broadcast();

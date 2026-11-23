@@ -247,4 +247,134 @@ class Storage {
       Process.runSync('reg', ['delete', _runKey, '/v', 'DesktopPanel', '/f']);
     }
   }
+
+  // ---------- под ярлыками рабочего стола ----------
+  // Как в Python-версии: Progman по сообщению 0x052C создаёт слой WorkerW позади значков,
+  // туда же встраиваются «живые обои». Окно становится его дочерним окном.
+  static final List<int> _found = [];
+
+  static int _enumProc(int hwnd, int lParam) {
+    final u = DynamicLibrary.open('user32.dll');
+    final findEx = u.lookupFunction<IntPtr Function(IntPtr, IntPtr, Pointer<Utf16>, Pointer<Utf16>),
+        int Function(int, int, Pointer<Utf16>, Pointer<Utf16>)>('FindWindowExW');
+    final shell = 'SHELLDLL_DefView'.toNativeUtf16();
+    final worker = 'WorkerW'.toNativeUtf16();
+    try {
+      if (findEx(hwnd, 0, shell, nullptr) != 0) {
+        final w = findEx(0, hwnd, worker, nullptr);
+        if (w != 0) _found.add(w);
+      }
+    } finally {
+      calloc.free(shell);
+      calloc.free(worker);
+    }
+    return 1;
+  }
+
+  DynamicLibrary get _u => DynamicLibrary.open('user32.dll');
+
+  int _selfHwnd() {
+    final find = _u.lookupFunction<IntPtr Function(Pointer<Utf16>, Pointer<Utf16>), int Function(Pointer<Utf16>, Pointer<Utf16>)>('FindWindowW');
+    final title = windowTitle.toNativeUtf16();
+    try {
+      return find(nullptr, title);
+    } finally {
+      calloc.free(title);
+    }
+  }
+
+  int _desktopLayer() {
+    final find = _u.lookupFunction<IntPtr Function(Pointer<Utf16>, Pointer<Utf16>), int Function(Pointer<Utf16>, Pointer<Utf16>)>('FindWindowW');
+    final findEx = _u.lookupFunction<IntPtr Function(IntPtr, IntPtr, Pointer<Utf16>, Pointer<Utf16>),
+        int Function(int, int, Pointer<Utf16>, Pointer<Utf16>)>('FindWindowExW');
+    final send = _u.lookupFunction<IntPtr Function(IntPtr, Uint32, IntPtr, IntPtr, Uint32, Uint32, Pointer<IntPtr>),
+        int Function(int, int, int, int, int, int, Pointer<IntPtr>)>('SendMessageTimeoutW');
+    final enumWindows = _u.lookupFunction<Int32 Function(Pointer<NativeFunction<Int32 Function(IntPtr, IntPtr)>>, IntPtr),
+        int Function(Pointer<NativeFunction<Int32 Function(IntPtr, IntPtr)>>, int)>('EnumWindows');
+    final cls = 'Progman'.toNativeUtf16();
+    final worker = 'WorkerW'.toNativeUtf16();
+    final res = calloc<IntPtr>();
+    try {
+      final progman = find(cls, nullptr);
+      if (progman == 0) return 0;
+      send(progman, 0x052C, 0xD, 0x1, 0, 1000, res);
+      send(progman, 0x052C, 0, 0, 0, 1000, res);
+      _found.clear();
+      enumWindows(Pointer.fromFunction<Int32 Function(IntPtr, IntPtr)>(_enumProc, 1), 0);
+      final w = _found.isNotEmpty ? _found.first : findEx(progman, 0, worker, nullptr);
+      logError('Слой рабочего стола: Windows ${Platform.operatingSystemVersion}; Progman=$progman; WorkerW=$w; '
+          'способ=${_found.isNotEmpty ? 'отдельное окно' : w != 0 ? 'внутри Progman' : 'не найден'}');
+      return w;
+    } finally {
+      calloc.free(cls);
+      calloc.free(worker);
+      calloc.free(res);
+    }
+  }
+
+  (int, int, int, int) _rect(int hwnd) {
+    final get = _u.lookupFunction<Int32 Function(IntPtr, Pointer<Int32>), int Function(int, Pointer<Int32>)>('GetWindowRect');
+    final r = calloc<Int32>(4);
+    try {
+      get(hwnd, r);
+      return (r[0], r[1], r[2], r[3]);
+    } finally {
+      calloc.free(r);
+    }
+  }
+
+  void _setStyles(int hwnd, {required bool child}) {
+    final getL = _u.lookupFunction<IntPtr Function(IntPtr, Int32), int Function(int, int)>('GetWindowLongPtrW');
+    final setL = _u.lookupFunction<IntPtr Function(IntPtr, Int32, IntPtr), int Function(int, int, int)>('SetWindowLongPtrW');
+    const gwlStyle = -16, gwlExStyle = -20, wsChild = 0x40000000, wsPopup = 0x80000000;
+    const wsExLayered = 0x80000, wsExTransparent = 0x20;
+    if (child) {
+      // дочернее окно не может быть «слоистым» — Windows его просто не рисует
+      setL(hwnd, gwlExStyle, getL(hwnd, gwlExStyle) & ~(wsExLayered | wsExTransparent));
+      setL(hwnd, gwlStyle, (getL(hwnd, gwlStyle) & ~wsPopup) | wsChild);
+    } else {
+      setL(hwnd, gwlStyle, (getL(hwnd, gwlStyle) & ~wsChild) | wsPopup);
+    }
+  }
+
+  /// Встраивает панель под ярлыки. false — слой не найден или окно не нашлось.
+  bool embedInDesktop() {
+    if (!Platform.isWindows) return false;
+    try {
+      final self = _selfHwnd();
+      final parent = _desktopLayer();
+      if (self == 0 || parent == 0) return false;
+      final (l, t, r, b) = _rect(self);
+      final (pl, pt, _, _) = _rect(parent);
+      _setStyles(self, child: true);
+      _u.lookupFunction<IntPtr Function(IntPtr, IntPtr), int Function(int, int)>('SetParent')(self, parent);
+      _setPos(self, l - pl, t - pt, r - l, b - t);
+      return true;
+    } catch (e, st) {
+      logError('Не удалось встроить панель в рабочий стол:\n$e\n$st');
+      return false;
+    }
+  }
+
+  /// Возвращает панель обычным окном на прежнее место экрана.
+  void releaseFromDesktop() {
+    if (!Platform.isWindows) return;
+    try {
+      final self = _selfHwnd();
+      if (self == 0) return;
+      final (l, t, r, b) = _rect(self); // уже в экранных координатах
+      _u.lookupFunction<IntPtr Function(IntPtr, IntPtr), int Function(int, int)>('SetParent')(self, 0);
+      _setStyles(self, child: false);
+      _setPos(self, l, t, r - l, b - t);
+    } catch (e, st) {
+      logError('Не удалось вернуть панель из рабочего стола:\n$e\n$st');
+    }
+  }
+
+  void _setPos(int hwnd, int x, int y, int w, int h) {
+    final setPos = _u.lookupFunction<Int32 Function(IntPtr, IntPtr, Int32, Int32, Int32, Int32, Uint32),
+        int Function(int, int, int, int, int, int, int)>('SetWindowPos');
+    const noZ = 0x4, noAct = 0x10, show = 0x40, frame = 0x20;
+    setPos(hwnd, 0, x, y, w, h, noZ | noAct | show | frame);
+  }
 }

@@ -279,7 +279,7 @@ class _ToastsState extends State<Toasts> {
     sub ??= Scope.of(context).m.notices.listen((n) {
       final id = ++seq;
       setState(() => items.add((id, n)));
-      Timer(Duration(seconds: n.kind == 'remind' ? 120 : 25), () => _close(id));
+      Timer(Duration(seconds: n.seconds ?? (n.kind == 'remind' ? 120 : 25)), () => _close(id));
     });
   }
 
@@ -318,6 +318,14 @@ class _ToastsState extends State<Toasts> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(n.title, style: T.title.copyWith(color: levelColor(n.kind == 'remind' ? 'accent' : n.kind))),
                     Text(n.text, style: T.norm),
+                    if (n.actions.isNotEmpty)
+                      Wrap(children: [
+                        for (final (label, f) in n.actions)
+                          Btn(label, () {
+                            f();
+                            _close(id);
+                          }, pad: 4),
+                      ]),
                     if (n.taskId != null)
                       Wrap(children: [
                         Btn('через 10 мин', () {
