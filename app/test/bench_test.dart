@@ -133,6 +133,23 @@ void main() {
       }
       report('[$n] выбор дня + перерисовка (×1)', ms(sw) / 10);
 
+      // вклад каждого блока: оставляем видимым только его
+      final order = List<String>.from(m.s['order'] as List);
+      for (final only in [...order, 'none']) {
+        m.s['hidden_blocks'] = [for (final k in order) if (k != only) k];
+        m.touch();
+        await tester.pump();
+        sw = Stopwatch()..start();
+        for (var i = 0; i < 6; i++) {
+          m.toggleTask(ids[20 + i]);
+          await tester.pump();
+        }
+        report('[$n] перерисовка, только блок $only', ms(sw) / 6);
+      }
+      m.s['hidden_blocks'] = [];
+      m.touch();
+      await tester.pump();
+
       sw = Stopwatch()..start();
       for (var i = 0; i < 10; i++) {
         m.clock.value = now.add(Duration(seconds: i + 1));
