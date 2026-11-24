@@ -297,4 +297,72 @@ void main() {
       expect(m.search('шаблон #работа').map((t) => t['id']), ['a']);
     });
   });
+
+  group('GTD', () {
+    test('@контекст разбирается в метку', () {
+      final q = parseQuick('Позвонить врачу @Телефон #здоровье ~15м', today, allowDate: false);
+      expect(q.text, 'Позвонить врачу');
+      expect(q.tags, ['здоровье', '@телефон']);
+      expect(tagLabel('@телефон'), '@телефон');
+      expect(tagLabel('дом'), '#дом');
+      expect(parseQuick('почта me@mail.ru', today).tags, isEmpty);
+    });
+
+    test('входящие живут без даты и не переносятся', () {
+      final m = makeModel();
+      final t = m.addInbox('завтра купить лампочку @город');
+      expect(t['date'], isNull);
+      expect(t['text'], 'завтра купить лампочку');
+      expect(m.inboxCount, 1);
+      expect(m.tasksFor(today).where((x) => x['id'] == t['id']), isEmpty);
+      m.carryOverTasks();
+      expect(m.findTask(t['id'] as String)!['date'], isNull);
+      expect(m.futureTasks(), isEmpty);
+      m.save();
+      m.flushSave();
+    });
+
+    test('списки, делегирование и возврат в календарь', () {
+      final m = makeModel(demo: {
+        'tasks': [
+          {'id': 'a', 'text': 'Отчёт', 'date': '2026-11-23', 'done': false},
+          {'id': 'b', 'text': 'Без даты', 'done': false, 'list': 'someday'},
+          {'id': 'c', 'text': 'Битая', 'date': 'xx', 'done': false},
+        ]
+      });
+      expect(m.findTask('b')!['date'], isNull); // GTD-задачу без даты загрузка не трогает
+      expect(m.findTask('c')!['date'], '2026-11-23');
+      m.setList('a', 'next');
+      expect(m.findTask('a')!['date'], isNull);
+      expect(m.gtdList('next').map((t) => t['id']), ['a']);
+      m.delegate('a', 'Иван');
+      final a = m.findTask('a')!;
+      expect([a['list'], a['waiting_for'], a['waiting_since']], ['waiting', 'Иван', '2026-11-23']);
+      m.moveTaskDate('a', DateTime(2026, 11, 25));
+      expect([a['list'], a['waiting_for'], a['date']], [null, null, '2026-11-25']);
+      m.toggleTask('b');
+      expect(m.findTask('b')!['date'], '2026-11-23');
+      m.setList('b', null);
+      expect(m.findTask('b')!['list'], isNull);
+    });
+
+    test('проекты и следующий шаг', () {
+      final m = makeModel();
+      final p = m.addProject('Ремонт кухни');
+      expect(m.projectStuck(p), isTrue);
+      m.addProjectAction(p, 'Выбрать плитку @город');
+      m.addProjectAction(p, 'пт Замер');
+      final ts = m.projectTasks(p);
+      expect(ts.map((t) => [t['text'], t['list'], t['date']]), [
+        ['Выбрать плитку', 'next', null],
+        ['Замер', null, '2026-11-27'],
+      ]);
+      expect(m.projectStuck(p), isFalse);
+      m.setProjectStatus(p, 'someday');
+      expect(m.projectsBy('someday').length, 1);
+      m.deleteProject(p);
+      expect(m.projects, isEmpty);
+      expect(m.tasks.every((t) => (t as Map)['project'] == null), isTrue);
+    });
+  });
 }

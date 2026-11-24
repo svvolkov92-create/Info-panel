@@ -192,7 +192,7 @@ class _TasksBlockState extends State<TasksBlock> {
             for (final g in m.weekGoals())
               CheckedPopupMenuItem(value: 'goal:${g['id']}', checked: f == 'goal:${g['id']}', child: Text('цель: ${short(g['text'] as String, 30)}')),
             if (m.allTags().isNotEmpty) const PopupMenuDivider(),
-            for (final g in m.allTags()) CheckedPopupMenuItem(value: '#$g', checked: f == '#$g', child: Text('#$g')),
+            for (final g in m.allTags()) CheckedPopupMenuItem(value: '#$g', checked: f == '#$g', child: Text(tagLabel('$g'))),
           ],
           child: Text('$filterLabel', style: T.tiny.copyWith(color: f == 'all' ? C.muted : C.warn)),
         ),
@@ -283,7 +283,7 @@ class QuickPreview extends StatelessWidget {
       if (q.prio) ('высокий приоритет', C.danger),
       if (q.eis != null) (eis[q.eis]!.$1, eisColor[q.eis]!),
       if (q.est != null) (fmtEst(q.est!), C.muted),
-      for (final g in q.tags) ('#$g', tagColor(g)),
+      for (final g in q.tags) (tagLabel(g), tagColor(g)),
       if (q.deadline != null) ('до ${shortDate(q.deadline!, m.today)}', C.warn),
     ];
     if (parts.isEmpty) return const SizedBox.shrink();
@@ -437,7 +437,7 @@ class _TaskRowState extends State<TaskRow> {
     if (badge != null && !done) meta.add((badge.$1, levelColor(badge.$2), () => sc.actions.askDeadline(context, id)));
     if (t['est'] is num) meta.add((fmtEst((t['est'] as num).round()), C.muted, () => sc.actions.askEst(context, id)));
     for (final g in (t['tags'] as List?) ?? const []) {
-      meta.add(('#$g', tagColor('$g'), () => m.setSetting('filter', '#$g')));
+      meta.add((tagLabel('$g'), tagColor('$g'), () => m.setSetting('filter', '#$g')));
     }
     final goal = m.findGoal(t['goal']);
     if (goal != null) meta.add(('цель: ${short(goal['text'] as String, 16)}', C.rest, () => m.setSetting('filter', 'goal:${goal['id']}')));
@@ -482,7 +482,7 @@ class _TaskRowState extends State<TaskRow> {
         if (note != null)
           Text(note, style: TextStyle(fontSize: font - 2, color: done ? C.faint : C.warn, fontStyle: FontStyle.italic))
         else if (m.held(t))
-          Text(wdFrom[wd(fromIso(t['date'] as String))],
+          Text(wdFrom[wd(dayOf(t, m.today))],
               style: TextStyle(fontSize: font - 2, color: C.faint, fontStyle: FontStyle.italic)),
       ]);
     }

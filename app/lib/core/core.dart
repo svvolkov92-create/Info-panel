@@ -113,6 +113,12 @@ const wdTokens = {
   'субботу': 5, 'вс': 6, 'воскресенье': 6,
 };
 
+/// Списки GTD: задачи в них живут без даты.
+const gtdLists = {'inbox': 'Входящие', 'next': 'Следующие действия', 'waiting': 'Жду', 'someday': 'Когда-нибудь'};
+
+/// День задачи; у задачи GTD-списка даты нет — тогда fallback (обычно сегодня).
+DateTime dayOf(Map t, DateTime fallback) => tryIso(t['date']) ?? fallback;
+
 const goalsLimit = 5;
 const remindBefore = 10; // минут до задачи со временем
 const undoDepth = 50;
@@ -209,6 +215,7 @@ final _prioPrefix = RegExp(r'^\s*!+\s*(.+)$', dotAll: true);
 final _timePrefix = RegExp(r'^\s*([01]?\d|2[0-3])[:.]([0-5]\d)\s+(.+)$', dotAll: true);
 final _quadRe = RegExp(r'(?<!\S)!!([1-4])(?!\S)');
 final _tagRe = RegExp(r'(?<!\S)#([\p{L}\p{N}_-]+)', unicode: true);
+final _ctxRe = RegExp(r'(?<!\S)@([\p{L}\p{N}_-]+)', unicode: true); // контекст GTD: @телефон
 final _estRe = RegExp(r'(?<!\S)~\s*(\d+(?:[.,]\d+)?)\s*(ч|час|часа|часов|h|м|мин|m)?(?!\S)',
     caseSensitive: false, unicode: true);
 final _deadlineRe = RegExp(r'(?<!\S)до\s+(\S+)\s*$', caseSensitive: false, unicode: true);
@@ -293,6 +300,11 @@ class Extras {
     if (!tags.contains(tg)) tags.add(tg);
   }
   text = text.replaceAll(_tagRe, '');
+  for (final m in _ctxRe.allMatches(text)) {
+    final c = '@${m[1]!.toLowerCase()}';
+    if (!tags.contains(c)) tags.add(c);
+  }
+  text = text.replaceAll(_ctxRe, '');
   int? est;
   final em = _estRe.firstMatch(text);
   if (em != null) {
@@ -576,9 +588,12 @@ String taskEditLine(Map t, DateTime today) {
   b.write(t['text']);
   if (t['est'] is int) b.write(' ${estToken(t['est'] as int)}');
   for (final g in (t['tags'] as List?) ?? const []) {
-    b.write(' #$g');
+    b.write('$g'.startsWith('@') ? ' $g' : ' #$g');
   }
   final dl = tryIso(t['deadline']);
   if (dl != null) b.write(' до ${shortDate(dl, today)}');
   return b.toString();
 }
+
+/// Метка для показа: «#работа» или контекст «@телефон».
+String tagLabel(String g) => g.startsWith('@') ? g : '#$g';

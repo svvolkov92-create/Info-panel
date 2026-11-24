@@ -105,10 +105,10 @@ class _MatrixWindowState extends State<MatrixWindow> {
         if ((x as Json)['done'] != true &&
             (scope == 'all' ||
                 (scope == 'today' && x['date'] == iso(m.today)) ||
-                (scope == 'week' && daysBetween(m.today, fromIso(x['date'] as String)) >= 0 && daysBetween(m.today, fromIso(x['date'] as String)) <= 6)))
+                (scope == 'week' && x['date'] is String && daysBetween(m.today, fromIso(x['date'] as String)) >= 0 && daysBetween(m.today, fromIso(x['date'] as String)) <= 6)))
           x,
     ]..sort((a, b) {
-        final c = (a['date'] as String).compareTo(b['date'] as String);
+        final c = '${a['date'] ?? '9999'}'.compareTo('${b['date'] ?? '9999'}');
         return c != 0 ? c : (prioRank[a['priority']] ?? 3) - (prioRank[b['priority']] ?? 3);
       });
     for (final t in list) {
@@ -170,7 +170,7 @@ class _MatrixItem extends StatelessWidget {
     final sc = Scope.of(context);
     final m = sc.m;
     final id = t['id'] as String;
-    final d = fromIso(t['date'] as String);
+    final d = dayOf(t, m.today);
     final badge = deadlineBadge(t, m.today);
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -212,7 +212,7 @@ class _SearchWindowState extends State<SearchWindow> {
     final found = m.search(q);
     final words = q.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     void go(Json t) {
-      m.selectDay(fromIso(t['date'] as String));
+      if (t['date'] is String) m.selectDay(fromIso(t['date'] as String));
       // окно поиска закрывается — карточку открываем от главного окна, а не от закрытого
       final nav = Navigator.of(context);
       nav.pop();
@@ -249,8 +249,10 @@ class _SearchWindowState extends State<SearchWindow> {
                   Icon(t['done'] == true ? Icons.check_circle : Icons.circle_outlined, size: 14, color: t['done'] == true ? C.ok : C.muted),
                   SizedBox(
                     width: 78,
-                    child: Text(' ${fromIso(t['date'] as String) == m.today ? 'сегодня' : futureDateText(fromIso(t['date'] as String), m.today)}',
-                        style: T.tiny.copyWith(color: fromIso(t['date'] as String).isBefore(m.today) ? C.faint : C.accent)),
+                    child: t['date'] is! String
+                        ? Text(' ${gtdLists[t['list']] ?? 'без даты'}', style: T.tiny.copyWith(color: C.muted), overflow: TextOverflow.ellipsis)
+                        : Text(' ${fromIso(t['date'] as String) == m.today ? 'сегодня' : futureDateText(fromIso(t['date'] as String), m.today)}',
+                            style: T.tiny.copyWith(color: fromIso(t['date'] as String).isBefore(m.today) ? C.faint : C.accent)),
                   ),
                   Expanded(child: Text(t['text'] as String, style: T.small.copyWith(color: t['done'] == true ? C.muted : C.fg))),
                 ]),
@@ -355,7 +357,7 @@ class WeeklyReview extends StatelessWidget {
     final tasks = [for (final t in m.tasks) t as Json];
     final done = tasks.where((t) => t['done'] == true && '${t['done_at'] ?? ''}'.compareTo(sIso) >= 0 && '${t['done_at'] ?? ''}'.compareTo(eIso) <= 0).toList();
     final byDay = [for (var i = 0; i < 7; i++) done.where((t) => t['done_at'] == iso(addDays(start, i))).length];
-    final stillOpen = tasks.where((t) => t['done'] != true && (t['date'] as String).compareTo(sIso) >= 0 && (t['date'] as String).compareTo(tIso) <= 0).length;
+    final stillOpen = tasks.where((t) => t['done'] != true && t['date'] is String && (t['date'] as String).compareTo(sIso) >= 0 && (t['date'] as String).compareTo(tIso) <= 0).length;
     var moves = 0;
     for (final t in tasks) {
       for (final e in (t['log'] as List?) ?? const []) {
@@ -399,7 +401,7 @@ class WeeklyReview extends StatelessWidget {
         const SectionLabel('Фокус'),
         Text('Помидоров: $pomos${minutes > 0 ? ', ${fmtEst(minutes)} работы' : ''}', style: T.small.copyWith(color: C.accent)),
         for (final e in tagList.take(5))
-          Text('  ${e.key == 'без метки' ? e.key : '#${e.key}'}: ${fmtEst(e.value)}', style: T.small.copyWith(color: e.key == 'без метки' ? C.muted : tagColor(e.key))),
+          Text('  ${e.key == 'без метки' ? e.key : tagLabel(e.key)}: ${fmtEst(e.value)}', style: T.small.copyWith(color: e.key == 'без метки' ? C.muted : tagColor(e.key))),
         const SectionLabel('Цели недели'),
         if (goals.isEmpty) Text('Целей на неделю не было', style: T.small.copyWith(color: C.faint)),
         for (final g in goals)
@@ -451,7 +453,7 @@ class _RepeatDialogState extends State<RepeatDialog> {
 
   void _init(PanelModel m) {
     final t = m.findTask(widget.id)!;
-    final d = fromIso(t['date'] as String);
+    final d = dayOf(t, m.today);
     mday = d.day;
     wdW = wdM = wd(d);
     ord = ((d.day - 1) ~/ 7).clamp(0, 3);

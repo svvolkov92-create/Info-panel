@@ -173,7 +173,7 @@ class _HomeState extends State<Home> {
       final step = k == LogicalKeyboardKey.arrowDown ? 1 : -1;
       if (ctrl && sel != null) {
         final t = m.findTask(sel)!;
-        final d = addDays(fromIso(t['date'] as String), step);
+        final d = addDays(dayOf(t, m.today), step);
         if (d.isBefore(m.today)) {
           m.flash('В прошлое не переносим', 'muted');
         } else {
@@ -314,7 +314,7 @@ class AppActions implements PanelActions {
   Future<void> askDate(BuildContext context, String id) {
     final t = m.findTask(id);
     if (t == null) return Future.value();
-    final d = fromIso(t['date'] as String);
+    final d = dayOf(t, m.today);
     return inputDialog(context, 'Перенести задачу', '«${short(t['text'] as String, 40)}»\nНа какую дату? Например: 20.11, +3, пт, завтра.',
         [('Дата', '${two(d.day)}.${two(d.month)}.${d.year}')], (v) {
       final nd = parseDate(v[0], m.today);

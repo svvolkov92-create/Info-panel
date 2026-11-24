@@ -101,7 +101,7 @@ class _TaskCardState extends State<TaskCard> {
       return const SizedBox.shrink();
     }
     final done = t['done'] == true;
-    final d = fromIso(t['date'] as String);
+    final d = dayOf(t, m.today);
     final today = m.today;
     final monday = addDays(today, 7 - wd(today));
     final rule = m.ruleOf(t);
@@ -196,7 +196,7 @@ class _TaskCardState extends State<TaskCard> {
                   section('tags', 'Метки', Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     Wrap(children: [
                       for (final g in (t['tags'] as List?) ?? const [])
-                        Pill('#$g  ×', true, () => m.removeTag(id, '$g'), color: tagColor('$g')),
+                        Pill('${tagLabel('$g')}  ×', true, () => m.removeTag(id, '$g'), color: tagColor('$g')),
                     ]),
                     Field(
                       hint: '#метка и Enter (можно несколько)',

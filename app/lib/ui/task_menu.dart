@@ -68,7 +68,7 @@ List<Widget> taskMenuItems(BuildContext context, String id, {VoidCallback? onEdi
   final m = sc.m, a = sc.actions;
   final t = m.findTask(id);
   if (t == null) return const [];
-  final d = fromIso(t['date'] as String);
+  final d = dayOf(t, m.today);
   final today = m.today;
   final tomorrow = addDays(today, 1);
   final monday = addDays(today, 7 - wd(today));

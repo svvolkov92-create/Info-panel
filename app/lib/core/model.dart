@@ -197,7 +197,9 @@ class PanelModel extends ChangeNotifier {
       seen.add(t['id'] as String);
       t['text'] = '${t['text'] ?? ''}'.isEmpty ? '(без названия)' : '${t['text']}';
       t['done'] = t['done'] == true;
-      if (tryIso(t['date']) == null) {
+      if (tryIso(t['date']) == null && gtdLists.containsKey(t['list'])) {
+        t.remove('date'); // задача GTD-списка живёт без даты, пока её не поставят в календарь
+      } else if (tryIso(t['date']) == null) {
         storage.logError('У задачи «${short(t['text'] as String, 60)}» испорчена дата ${t['date']} — поставил сегодня');
         t['date'] = todayIso;
       }
@@ -313,7 +315,8 @@ class PanelModel extends ChangeNotifier {
     if (idx != null) return idx;
     final built = <String, List<Json>>{};
     for (final x in tasks) {
-      (built[(x as Json)['date'] as String] ??= []).add(x);
+      final d = (x as Json)['date'];
+      if (d is String) (built[d] ??= []).add(x);
     }
     return _byDate = built;
   }
@@ -349,6 +352,7 @@ class PanelModel extends ChangeNotifier {
     return [
       for (final x in tasks)
         if ((x as Json)['from'] is String &&
+            x['date'] is String &&
             (x['from'] as String).compareTo(key) <= 0 &&
             key.compareTo(x['date'] as String) < 0)
           x,
@@ -390,7 +394,7 @@ class PanelModel extends ChangeNotifier {
     final t0 = iso(today);
     final list = <Json>[
       for (final t in tasks)
-        if (((t as Json)['date'] as String).compareTo(t0) > 0 && t['done'] != true) t,
+        if ((t as Json)['date'] is String && (t['date'] as String).compareTo(t0) > 0 && t['done'] != true) t,
     ];
     return stableSorted(list, (a, b) {
       final c = (a['date'] as String).compareTo(b['date'] as String);
@@ -416,6 +420,10 @@ class PanelModel extends ChangeNotifier {
     final kept = [];
     for (final x in tasks) {
       final t = x as Json;
+      if (t['date'] is! String) {
+        kept.add(t); // входящие, следующие действия и т. п. — без даты, не переносятся
+        continue;
+      }
       if (t['done'] != true && (t['date'] as String).compareTo(target) < 0) {
         t.putIfAbsent('from', () => t['date']);
         t['date'] = target;
@@ -569,6 +577,7 @@ class PanelModel extends ChangeNotifier {
     t['done'] = t['done'] != true;
     if (t['done'] == true) {
       t['done_at'] = iso(today);
+      t['date'] ??= iso(today); // сделанное действие без даты попадает в сегодняшний день
       addLog(t, 'выполнена');
     } else {
       t.remove('done_at');
@@ -591,6 +600,7 @@ class PanelModel extends ChangeNotifier {
     final t = findTask(id);
     if (t == null || t['date'] == iso(d)) return;
     t['date'] = iso(d);
+    _leaveList(t);
     t.remove('from');
     t.remove('reminded');
     t.remove('snooze');
@@ -603,7 +613,7 @@ class PanelModel extends ChangeNotifier {
   /// Сегодняшняя и просроченная задача — на завтра, будущая — на день позже своей даты.
   DateTime nextDayFor(String id) {
     final t = findTask(id);
-    final d = t != null ? fromIso(t['date'] as String) : today;
+    final d = tryIso(t?['date']) ?? today;
     return addDays(d.isAfter(today) ? d : today, 1);
   }
 
@@ -748,12 +758,12 @@ class PanelModel extends ChangeNotifier {
       }
     } else if (r != null) {
       r['rule'] = rule;
-      r['start'] = t['date'];
+      r['start'] = t['date'] ?? iso(today);
     } else {
       final rid = newId();
       recurring.add(<String, dynamic>{
         'id': rid, 'text': t['text'], 'rule': rule, 'priority': t['priority'], 'eis': t['eis'],
-        'time': t['time'], 'last': t['date'], 'start': t['date'],
+        'time': t['time'], 'last': t['date'] ?? iso(today), 'start': t['date'] ?? iso(today),
       });
       t['rec'] = rid;
     }
@@ -805,6 +815,7 @@ class PanelModel extends ChangeNotifier {
     }
     if (t['date'] != iso(selected)) {
       t['date'] = iso(selected);
+      _leaveList(t);
       t.remove('from');
       t.remove('reminded');
       t['moves'] = ((t['moves'] as num?) ?? 0).toInt() + 1;
@@ -1017,7 +1028,8 @@ class PanelModel extends ChangeNotifier {
 
   // ===================== шаблоны =====================
   Json templateItem(Json t, DateTime base) {
-    final item = <String, dynamic>{'text': t['text'], 'offset': daysBetween(base, fromIso(t['date'] as String))};
+    final td = tryIso(t['date']);
+    final item = <String, dynamic>{'text': t['text'], 'offset': td == null ? 0 : daysBetween(base, td)};
     for (final k in ['priority', 'eis', 'est', 'time']) {
       if (t[k] != null) item[k] = t[k];
     }
@@ -1312,7 +1324,7 @@ class PanelModel extends ChangeNotifier {
   void snoozeTomorrow(String id) {
     final t = findTask(id);
     if (t == null) return;
-    final d = fromIso(t['date'] as String);
+    final d = tryIso(t['date']) ?? today;
     final tomorrow = addDays(today, 1);
     moveTaskDate(id, d.isAfter(tomorrow) ? d : tomorrow);
   }
@@ -1437,6 +1449,179 @@ class PanelModel extends ChangeNotifier {
     }
     return set.toList()..sort();
   }
+
+  // ===================== GTD =====================
+  List<Json> gtdList(String list) => stableSorted(
+        [for (final t in tasks) if ((t as Json)['list'] == list && t['done'] != true) t],
+        (a, b) => '${a['created'] ?? ''}'.compareTo('${b['created'] ?? ''}'),
+      );
+
+  int get inboxCount => tasks.where((t) => (t as Json)['list'] == 'inbox' && t['done'] != true).length;
+
+  /// Задача во входящие: без даты. Метки, @контексты, оценку и дедлайн разбираем, дату — нет.
+  Json addInbox(String raw) {
+    final q = parseQuick(raw, today, allowDate: false);
+    final t = <String, dynamic>{
+      'id': newId(), 'text': q.text.isEmpty ? raw.trim() : q.text, 'done': false,
+      'list': 'inbox', 'created': nowStr(_now()),
+    };
+    if (q.prio) t['priority'] = 'high';
+    if (q.eis != null) t['eis'] = q.eis;
+    applyExtras(t, Extras(q.tags, q.est, q.deadline), replace: false);
+    addLog(t, 'во входящие');
+    tasks.add(t);
+    afterTasksChanged();
+    return t;
+  }
+
+  void addInboxLines(List<String> lines) {
+    for (final l in lines) {
+      final q = parseQuick(l, today, allowDate: false);
+      final t = <String, dynamic>{'id': newId(), 'text': q.text.isEmpty ? l : q.text, 'done': false, 'list': 'inbox', 'created': nowStr(_now())};
+      applyExtras(t, Extras(q.tags, q.est, q.deadline), replace: false);
+      tasks.add(t);
+    }
+    afterTasksChanged();
+    flash('во входящие: ${lines.length}', 'ok');
+  }
+
+  /// Перевести задачу в GTD-список (без даты). list == null — вернуть в календарь на выбранный день.
+  void setList(String id, String? list) {
+    final t = findTask(id);
+    if (t == null) return;
+    if (list == null) {
+      moveTaskDate(id, t['date'] is String ? fromIso(t['date'] as String) : selected);
+      return;
+    }
+    t['list'] = list;
+    for (final k in ['date', 'from', 'reminded', 'snooze', 'carries']) {
+      t.remove(k);
+    }
+    if (list != 'waiting') {
+      t.remove('waiting_for');
+      t.remove('waiting_since');
+    }
+    addLog(t, 'в список «${gtdLists[list]}»');
+    afterTasksChanged();
+  }
+
+  void _leaveList(Json t) {
+    if (t.remove('list') != null) {
+      t.remove('waiting_for');
+      t.remove('waiting_since');
+    }
+  }
+
+  void delegate(String id, String who) {
+    final t = findTask(id);
+    if (t == null) return;
+    setList(id, 'waiting');
+    t['waiting_for'] = who.trim();
+    t['waiting_since'] = iso(today);
+    addLog(t, 'делегирована: ${who.trim()}');
+    afterTasksChanged();
+  }
+
+  List<String> contexts() {
+    final set = <String>{'@компьютер', '@телефон', '@дом', '@город'};
+    for (final t in tasks) {
+      for (final g in ((t as Json)['tags'] as List?) ?? const []) {
+        if ('$g'.startsWith('@')) set.add('$g');
+      }
+    }
+    return set.toList()..sort();
+  }
+
+  void toggleContext(String id, String ctx) {
+    final t = findTask(id);
+    if (t == null) return;
+    final tags = [for (final g in (t['tags'] as List?) ?? const []) '$g'];
+    if (tags.contains(ctx)) {
+      tags.remove(ctx);
+    } else {
+      tags.add(ctx);
+    }
+    if (tags.isEmpty) {
+      t.remove('tags');
+    } else {
+      t['tags'] = tags;
+    }
+    afterTasksChanged();
+  }
+
+  // ---- проекты ----
+  List<Json> get projects => [for (final p in (data['projects'] as List?) ?? const []) p as Json];
+
+  List<Json> projectsBy(String status) => projects.where((p) => (p['status'] ?? 'active') == status).toList();
+
+  Json? findProject(Object? id) => id == null ? null : projects.where((p) => p['id'] == id).firstOrNull;
+
+  String addProject(String title, {String status = 'active'}) {
+    final p = <String, dynamic>{'id': newId(), 'title': title.trim(), 'status': status, 'created': nowStr(_now())};
+    ((data['projects'] as List?) ?? (data['projects'] = [])).add(p);
+    afterTasksChanged();
+    return p['id'] as String;
+  }
+
+  void renameProject(String id, String title) {
+    final p = findProject(id);
+    if (p == null || title.trim().isEmpty) return;
+    p['title'] = title.trim();
+    afterTasksChanged();
+  }
+
+  void setProjectStatus(String id, String status) {
+    final p = findProject(id);
+    if (p == null) return;
+    p['status'] = status;
+    if (status == 'done') {
+      p['done_at'] = iso(today);
+    } else {
+      p.remove('done_at');
+    }
+    afterTasksChanged();
+  }
+
+  void deleteProject(String id) {
+    (data['projects'] as List?)?.removeWhere((p) => (p as Json)['id'] == id);
+    for (final t in tasks) {
+      if ((t as Json)['project'] == id) t.remove('project');
+    }
+    afterTasksChanged();
+  }
+
+  List<Json> projectTasks(String id) => [for (final t in tasks) if ((t as Json)['project'] == id) t];
+
+  /// Незакрытые шаги проекта: и без даты, и в календаре.
+  List<Json> projectOpen(String id) => projectTasks(id).where((t) => t['done'] != true).toList();
+
+  bool projectStuck(String id) => projectOpen(id).isEmpty;
+
+  void addProjectAction(String projectId, String raw) {
+    if (raw.trim().isEmpty) return;
+    final q = parseQuick(raw, today);
+    final t = newTask(raw, date: q.date == null ? today : null);
+    if (q.date == null) {
+      t.remove('date');
+      t['list'] = 'next';
+    }
+    t['project'] = projectId;
+    tasks.add(t);
+    afterTasksChanged();
+  }
+
+  /// Задача превращается в проект: название проекта — текст задачи, сама задача удаляется.
+  String taskToProject(String id) {
+    final t = findTask(id);
+    final pid = addProject('${t?['text'] ?? 'Новый проект'}');
+    if (t != null) {
+      tasks.remove(t);
+      afterTasksChanged();
+    }
+    return pid;
+  }
+
+  void gtdReviewDone() => setSetting('gtd_review_week', weekKey(today));
 
   List<Json> search(String query) {
     final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();

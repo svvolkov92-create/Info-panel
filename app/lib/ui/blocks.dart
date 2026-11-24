@@ -28,7 +28,7 @@ class CalendarBlock extends StatelessWidget {
     for (final x in m.tasks) {
       final t = x as Json;
       if (t['done'] == true) continue;
-      load[t['date'] as String] = (load[t['date']] ?? 0) + 1;
+      if (t['date'] is String) load[t['date'] as String] = (load[t['date']] ?? 0) + 1;
       if (t['deadline'] != null) deadlines.add(t['deadline'] as String);
     }
     final events = {for (final e in m.events) e['date'] as String};
@@ -314,7 +314,7 @@ class _FutureRowState extends State<_FutureRow> {
     final m = sc.m;
     final t = widget.t;
     final id = t['id'] as String;
-    final d = fromIso(t['date'] as String);
+    final d = dayOf(t, m.today);
     final prio = prioColor[t['priority']];
     final row = MouseRegion(
       onEnter: (_) => setState(() => hover = true),
