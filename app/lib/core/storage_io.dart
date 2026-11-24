@@ -377,4 +377,8 @@ class Storage {
     const noZ = 0x4, noAct = 0x10, show = 0x40, frame = 0x20;
     setPos(hwnd, 0, x, y, w, h, noZ | noAct | show | frame);
   }
+
+  /// Сжатие снимков истории отмены.
+  Object pack(String s) => zlib.encode(utf8.encode(s));
+  String unpack(Object o) => o is String ? o : utf8.decode(zlib.decode(o as List<int>));
 }

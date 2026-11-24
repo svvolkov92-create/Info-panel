@@ -19,21 +19,34 @@ class TaskMenu extends StatefulWidget {
 
 class _TaskMenuState extends State<TaskMenu> {
   final ctl = MenuController();
-  bool built = false; // пункты меню строим только после первого открытия
+  // Меню создаётся только по правому щелчку и убирается после закрытия:
+  // держать готовое меню у каждой из сотен строк дорого для перерисовки.
+  bool active = false;
+  Offset pos = Offset.zero;
 
   @override
   Widget build(BuildContext context) {
+    final child = GestureDetector(
+      onSecondaryTapDown: (d) {
+        setState(() {
+          active = true;
+          pos = d.localPosition;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) ctl.open(position: pos);
+        });
+      },
+      child: widget.child,
+    );
+    if (!active) return child;
     return MenuAnchor(
       controller: ctl,
       style: const MenuStyle(backgroundColor: WidgetStatePropertyAll(C.card)),
-      menuChildren: built ? taskMenuItems(context, widget.id, onEdit: widget.onEdit, onSubs: widget.onSubs) : const [],
-      child: GestureDetector(
-        onSecondaryTapDown: (d) {
-          setState(() => built = true);
-          WidgetsBinding.instance.addPostFrameCallback((_) => ctl.open(position: d.localPosition));
-        },
-        child: widget.child,
-      ),
+      onClose: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => active = false);
+      }),
+      menuChildren: taskMenuItems(context, widget.id, onEdit: widget.onEdit, onSubs: widget.onSubs),
+      child: child,
     );
   }
 }

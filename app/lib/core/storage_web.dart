@@ -35,4 +35,7 @@ class Storage {
 
   bool embedInDesktop() => false;
   void releaseFromDesktop() {}
+
+  Object pack(String s) => s;
+  String unpack(Object o) => o as String;
 }

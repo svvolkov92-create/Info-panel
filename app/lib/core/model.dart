@@ -283,17 +283,53 @@ class PanelModel extends ChangeNotifier {
   /// Задача последнего рабочего дня, которая в выходные висит в «сегодня».
   bool held(Json t) => holdIso.contains(t['date']) && (t['date'] as String).compareTo(iso(today)) < 0;
 
+  // Индекс задач по датам: строится один раз после изменения, а не перебором всех задач на каждый день.
+  Map<String, List<Json>>? _byDate;
+  List<Json>? _future;
+
+  /// Сбросить кэши: вызывается при любом изменении задач.
+  void invalidate() {
+    _byDate = null;
+    _future = null;
+  }
+
+  @override
+  void notifyListeners() {
+    invalidate();
+    super.notifyListeners();
+  }
+
+  Map<String, List<Json>> get _index {
+    final idx = _byDate;
+    if (idx != null) return idx;
+    final built = <String, List<Json>>{};
+    for (final x in tasks) {
+      (built[(x as Json)['date'] as String] ??= []).add(x);
+    }
+    return _byDate = built;
+  }
+
   List<Json> tasksFor(DateTime d) {
     final key = iso(d);
     final todayIso = iso(today);
-    final items = <Json>[
-      for (final x in tasks)
-        if ((x as Json)['date'] == key ||
-            (d == today && holdIso.contains(x['date']) && (x['done'] != true || x['done_at'] == todayIso)))
-          x,
-    ];
-    final timed = items.where((t) => t['time'] != null).toList()
-      ..sort((a, b) => (a['time'] as String).compareTo(b['time'] as String));
+    final items = <Json>[...?_index[key]];
+    if (d == today && holdIso.isNotEmpty) {
+      // задачи последнего рабочего дня висят в «сегодня» до конца выходных
+      final held = <Json>[
+        for (final h in holdIso)
+          if (h != key)
+            for (final t in _index[h] ?? const <Json>[])
+              if (t['done'] != true || t['done_at'] == todayIso) t,
+      ];
+      if (held.isNotEmpty) {
+        final order = {for (var i = 0; i < tasks.length; i++) identityHashCode(tasks[i]): i};
+        items
+          ..addAll(held)
+          ..sort((a, b) => order[identityHashCode(a)]! - order[identityHashCode(b)]!);
+      }
+    }
+    final timed = stableSorted(items.where((t) => t['time'] != null).toList(),
+        (a, b) => (a['time'] as String).compareTo(b['time'] as String));
     return [...timed, ...items.where((t) => t['time'] == null)];
   }
 
@@ -324,13 +360,14 @@ class PanelModel extends ChangeNotifier {
     }
     int pr(Json t) => prioRank[t['priority']] ?? 3;
     int eo(Json t) => eisOrder[t['eis']] ?? 4;
+    // сортировка устойчивая: при равенстве сохраняется ваш порядок, как в Python-версии
     switch (s['sort']) {
       case 'priority':
-        items.sort((a, b) => pr(a) != pr(b) ? pr(a) - pr(b) : eo(a) - eo(b));
+        return stableSorted(items, (a, b) => pr(a) != pr(b) ? pr(a) - pr(b) : eo(a) - eo(b));
       case 'eis':
-        items.sort((a, b) => eo(a) != eo(b) ? eo(a) - eo(b) : pr(a) - pr(b));
+        return stableSorted(items, (a, b) => eo(a) != eo(b) ? eo(a) - eo(b) : pr(a) - pr(b));
       case 'deadline':
-        items.sort((a, b) {
+        return stableSorted(items, (a, b) {
           final c = '${a['deadline'] ?? '9999-12-31'}'.compareTo('${b['deadline'] ?? '9999-12-31'}');
           return c != 0 ? c : pr(a) - pr(b);
         });
@@ -338,13 +375,15 @@ class PanelModel extends ChangeNotifier {
     return items;
   }
 
-  List<Json> futureTasks() {
+  List<Json> futureTasks() => _future ??= _computeFuture();
+
+  List<Json> _computeFuture() {
     final t0 = iso(today);
     final list = <Json>[
       for (final t in tasks)
         if (((t as Json)['date'] as String).compareTo(t0) > 0 && t['done'] != true) t,
     ];
-    list.sort((a, b) {
+    return stableSorted(list, (a, b) {
       final c = (a['date'] as String).compareTo(b['date'] as String);
       if (c != 0) return c;
       if (a['time'] != null && b['time'] != null) return (a['time'] as String).compareTo(b['time'] as String);
@@ -352,7 +391,6 @@ class PanelModel extends ChangeNotifier {
       if (b['time'] != null) return 1;
       return 0;
     });
-    return list;
   }
 
   int loadMinutes(DateTime d) =>
@@ -380,6 +418,7 @@ class PanelModel extends ChangeNotifier {
       kept.add(t);
     }
     data['tasks'] = kept;
+    invalidate();
     generateRecurring();
     applyAutoUrgency();
     data['events'] = [for (final e in data['events'] as List) if ('${(e as Map)['date']}'.compareTo(t0) >= 0) e];
@@ -402,6 +441,7 @@ class PanelModel extends ChangeNotifier {
       }..removeWhere((k, v) => v == null));
       r['last'] = t0;
     }
+    invalidate();
   }
 
   void applyAutoUrgency() {
@@ -760,6 +800,7 @@ class PanelModel extends ChangeNotifier {
       t.remove('reminded');
       t['moves'] = ((t['moves'] as num?) ?? 0).toInt() + 1;
       addLog(t, 'перенесена на ${shortDate(selected, today)}');
+      invalidate();
     }
     final ids = viewTasks(selected).map((x) => x['id']).where((x) => x != id).toList();
     tasks.remove(t);
@@ -796,6 +837,7 @@ class PanelModel extends ChangeNotifier {
 
   // ===================== после изменений =====================
   void afterTasksChanged({bool undoable = true}) {
+    invalidate();
     hideUndo();
     applyAutoUrgency();
     if (undoable) {
@@ -841,8 +883,9 @@ class PanelModel extends ChangeNotifier {
   }
 
   // ===================== отмена и повтор =====================
-  final List<String> histUndo = [];
-  final List<String> histRedo = [];
+  // История хранится сжатой (как zlib в Python-версии): на 3000 задачах это мегабайты вместо сотни.
+  final List<Object> histUndo = [];
+  final List<Object> histRedo = [];
   String _committed = '';
 
   String _undoState() => jsonEncode({'tasks': data['tasks'], 'recurring': data['recurring'], 'goals': data['goals']});
@@ -850,7 +893,7 @@ class PanelModel extends ChangeNotifier {
   void commitUndo() {
     final st = _undoState();
     if (st != _committed) {
-      histUndo.add(_committed);
+      histUndo.add(storage.pack(_committed));
       if (histUndo.length > undoDepth) histUndo.removeAt(0);
       histRedo.clear();
       _committed = st;
@@ -864,18 +907,19 @@ class PanelModel extends ChangeNotifier {
 
   void redo() => _step(histRedo, histUndo, 'Повторено', 'Нечего повторять');
 
-  void _step(List<String> src, List<String> dst, String doneText, String emptyText) {
+  void _step(List<Object> src, List<Object> dst, String doneText, String emptyText) {
     commitUndo();
     if (src.isEmpty) {
       flash(emptyText, 'muted');
       return;
     }
-    dst.add(_committed);
-    _committed = src.removeLast();
+    dst.add(storage.pack(_committed));
+    _committed = storage.unpack(src.removeLast());
     final restored = jsonDecode(_committed) as Json;
     data['tasks'] = restored['tasks'] ?? [];
     data['recurring'] = restored['recurring'] ?? [];
     data['goals'] = restored['goals'] ?? <String, dynamic>{};
+    invalidate();
     if (s['pomo_task'] != null && findTask(s['pomo_task'] as String?) == null) s['pomo_task'] = null;
     hideUndo();
     save();
@@ -1400,4 +1444,14 @@ class PanelModel extends ChangeNotifier {
     });
     return found;
   }
+}
+
+/// Устойчивая сортировка: равные элементы сохраняют исходный порядок (List.sort в Dart этого не обещает).
+List<T> stableSorted<T>(List<T> list, int Function(T, T) cmp) {
+  final idx = List<int>.generate(list.length, (i) => i);
+  idx.sort((a, b) {
+    final c = cmp(list[a], list[b]);
+    return c != 0 ? c : a - b;
+  });
+  return [for (final i in idx) list[i]];
 }

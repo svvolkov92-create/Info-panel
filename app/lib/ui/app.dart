@@ -15,29 +15,43 @@ import 'theme.dart';
 import 'widgets.dart';
 import 'windows.dart';
 
-class PanelApp extends StatelessWidget {
+class PanelApp extends StatefulWidget {
   const PanelApp({super.key, required this.m, this.desk, this.sys});
   final PanelModel m;
   final DesktopWindow? desk;
   final SystemIntegration? sys;
 
   @override
+  State<PanelApp> createState() => _PanelAppState();
+}
+
+class _PanelAppState extends State<PanelApp> {
+  late final AppActions actions = AppActions(widget.m, widget.desk);
+  late final Widget home = Home(desk: widget.desk, actions: actions, sys: widget.sys);
+  // Тема строится один раз на каждый режим плотности: новая тема при каждом изменении
+  // заставляла бы перестраивать всё приложение.
+  static final _themes = <bool, ThemeData>{};
+
+  @override
   Widget build(BuildContext context) {
-    final actions = AppActions(m, desk);
+    final m = widget.m;
     return ListenableBuilder(
       listenable: m,
-      builder: (context, _) => MaterialApp(
-        title: 'Информационная панель',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(compact: m.s['ui_compact'] != false),
-        locale: const Locale('ru'),
-        builder: (context, child) => Scope(
-          m: m,
-          actions: actions,
-          child: Scaled(scale: ((m.s['ui_scale'] as num?) ?? 1).toDouble().clamp(0.5, 1.6), child: child!),
-        ),
-        home: Home(desk: desk, actions: actions, sys: sys),
-      ),
+      builder: (context, _) {
+        final compact = m.s['ui_compact'] != false;
+        return MaterialApp(
+          title: 'Информационная панель',
+          debugShowCheckedModeBanner: false,
+          theme: _themes[compact] ??= buildTheme(compact: compact),
+          locale: const Locale('ru'),
+          builder: (context, child) => Scope(
+            m: m,
+            actions: actions,
+            child: Scaled(scale: ((m.s['ui_scale'] as num?) ?? 1).toDouble().clamp(0.5, 1.6), child: child!),
+          ),
+          home: home,
+        );
+      },
     );
   }
 }

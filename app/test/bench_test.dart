@@ -98,7 +98,8 @@ void main() {
       report('[$n] запись файла', ms(sw));
       final size = File('${dir.path}/data.json').lengthSync();
       report('[$n] размер data.json, КБ', size / 1024);
-      final undoBytes = m.histUndo.fold<int>(0, (a, s) => a + s.length * 2) + m.histRedo.fold<int>(0, (a, s) => a + s.length * 2);
+      int sz(Object o) => o is String ? o.length * 2 : (o as List).length;
+      final undoBytes = [...m.histUndo, ...m.histRedo].fold<int>(0, (a, o) => a + sz(o));
       report('[$n] память истории отмены, МБ (${m.histUndo.length + m.histRedo.length} шагов)', undoBytes / 1024 / 1024);
       m.dispose();
     });
