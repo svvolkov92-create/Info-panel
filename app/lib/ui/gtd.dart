@@ -203,6 +203,7 @@ class GtdRow extends StatelessWidget {
                     style: T.norm.copyWith(color: done ? C.muted : C.fg, decoration: done ? TextDecoration.lineThrough : null)),
                 for (final g in tags) Text(tagLabel(g), style: T.tiny.copyWith(color: tagColor(g))),
                 if (project != null) Text('▪ ${short(project['title'] as String, 28)}', style: T.tiny.copyWith(color: C.rest)),
+                if (t['est'] is num) Text(fmtEst((t['est'] as num).round()), style: T.tiny),
                 if (dated) Text(futureDateText(fromIso(t['date'] as String), m.today), style: T.tiny.copyWith(color: C.accent)),
                 if (extra != null) Text(extra!, style: T.tiny.copyWith(color: C.warn)),
               ]),
@@ -240,7 +241,7 @@ class _Inbox extends StatelessWidget {
         _empty('Входящие пусты — голова свободна.')
       else ...[
         Row(children: [
-          Expanded(child: Text('${items.length} ${plural(items.length, 'запись', 'записи', 'записей')}', style: T.tiny)),
+          Expanded(child: Text(plural(items.length, 'запись', 'записи', 'записей'), style: T.tiny)),
           Btn('Разобрать по одной', () => onGo('process'), bold: true),
         ]),
         for (final t in items)
@@ -308,6 +309,9 @@ class _ProcessState extends State<_Process> {
             child: Text(t['text'] as String, style: T.title.copyWith(fontSize: 16)),
           ),
           if (t['created'] != null) Text('записано ${t['created']}', style: T.tiny.copyWith(color: C.faint)),
+          step('Где это делать? Отметьте до решения (необязательно)', [
+            for (final c in contexts) Pill(c, tags.contains(c), () => m.toggleContext(id, c), color: tagColor(c)),
+          ]),
           step('Нужно что-то делать?', [
             Pill('Нет — удалить', false, () => m.deleteTask(id), color: C.danger),
             Pill('Когда-нибудь, может быть', false, () => m.setList(id, 'someday'), color: C.rest),
@@ -331,9 +335,6 @@ class _ProcessState extends State<_Process> {
                 m.setField(id, 'project', p['id']);
                 m.setList(id, 'next');
               }, color: C.rest),
-          ]),
-          step('Где это делать? (контекст, необязательно)', [
-            for (final c in contexts) Pill(c, tags.contains(c), () => m.toggleContext(id, c), color: tagColor(c)),
           ]),
           const SizedBox(height: 6),
           Align(alignment: Alignment.centerRight, child: Btn('Пропустить', () => setState(() => skipped.add(id)), color: C.muted)),
@@ -449,7 +450,7 @@ class _ProjectsState extends State<_Projects> {
   Future<void> _delete(BuildContext context, PanelModel m, Json p) async {
     final n = m.projectOpen(p['id'] as String).length;
     if (await confirmDialog(context, 'Удалить проект?',
-        '«${p['title']}»${n > 0 ? '\nЕго $n ${plural(n, 'шаг', 'шага', 'шагов')} останутся задачами без проекта.' : ''}',
+        '«${p['title']}»${n > 0 ? '\nЕго шаги ($n) останутся задачами без проекта.' : ''}',
         yes: 'Удалить')) {
       m.deleteProject(p['id'] as String);
     }
@@ -479,7 +480,7 @@ class _ProjectsState extends State<_Projects> {
           Expanded(
             child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
               Text(p['title'] as String, style: T.title),
-              Text(stuck ? 'нет следующего шага' : '${open.length} ${plural(open.length, 'шаг', 'шага', 'шагов')}${doneCount > 0 ? ', сделано $doneCount' : ''}',
+              Text(stuck ? 'нет следующего шага' : '${plural(open.length, 'шаг', 'шага', 'шагов')}${doneCount > 0 ? ', сделано $doneCount' : ''}',
                   style: T.tiny.copyWith(color: stuck ? C.warn : C.muted)),
             ]),
           ),
@@ -543,7 +544,7 @@ class _Waiting extends StatelessWidget {
             final days = since == null ? null : daysBetween(since, m.today);
             return GtdRow(
               t: t,
-              extra: days == null ? null : (days == 0 ? 'с сегодня' : '$days ${plural(days, 'день', 'дня', 'дней')}'),
+              extra: days == null ? null : (days == 0 ? 'с сегодня' : pluralDays(days)),
               actions: [
                 Btn('Получено', () => m.toggleTask(t['id'] as String), size: 11, pad: 4, color: C.ok),
                 Btn('Напомнить сегодня', () => m.moveTaskDate(t['id'] as String, m.today), size: 11, pad: 4,

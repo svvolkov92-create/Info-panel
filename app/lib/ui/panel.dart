@@ -74,7 +74,7 @@ class PanelView extends StatelessWidget {
           Expanded(
             child: gtd
                 ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const SizedBox(width: 170, child: SingleChildScrollView(child: GtdRail())),
+                    const SizedBox(width: 196, child: SingleChildScrollView(child: GtdRail())),
                     SizedBox(width: gap + 6),
                     Expanded(child: panel),
                   ])
