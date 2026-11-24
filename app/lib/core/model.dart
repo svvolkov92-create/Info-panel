@@ -1689,7 +1689,7 @@ class PanelModel extends ChangeNotifier {
   List<Json> search(String query) {
     final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     if (words.isEmpty) return [];
-    final found = [for (final t in tasks) if (words.every(_hay(t as Json).contains)) t as Json];
+    final found = [for (final t in tasks) if (words.every(_hay(t as Json).contains)) t];
     found.sort((a, b) {
       final d = (a['done'] == true ? 1 : 0) - (b['done'] == true ? 1 : 0);
       return d != 0 ? d : '${a['date']}'.compareTo('${b['date']}');
