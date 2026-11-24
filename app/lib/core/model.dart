@@ -158,6 +158,15 @@ class PanelModel extends ChangeNotifier {
           if (t is Map && t.remove('prio') == true) t.putIfAbsent('priority', () => 'high');
         }
         d['tasks'] = sanitizeTasks(d['tasks'] as List);
+        // события с испорченной датой отбрасываем, иначе не отрисуется вся панель
+        d['events'] = [
+          for (final e in d['events'] as List)
+            if (e is Map && tryIso(e['date']) != null && '${e['title'] ?? ''}'.isNotEmpty) Map<String, dynamic>.from(e)
+            else if (e != null) ...(() {
+              storage.logError('Пропущено событие с испорченной датой: ${short('$e', 200)}');
+              return const [];
+            })(),
+        ];
       } catch (e, st) {
         storage.blocked = true; // данные устроены неожиданно — не перезаписываем, пока не разберёмся
         storage.logError('Не удалось разобрать данные, сохранение отключено:\n$e\n$st');

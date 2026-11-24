@@ -269,6 +269,24 @@ void main() {
       await sub.cancel();
     });
 
+    test('испорченные события и задачи не ломают загрузку', () {
+      final m = makeModel(demo: {
+        'tasks': [
+          {'id': 'a', 'text': 'x', 'date': 'вчера', 'done': false, 'deadline': '32.13'},
+          'мусор',
+        ],
+        'events': [
+          {'id': 'e1', 'title': 'Отпуск', 'date': '2026-12-01'},
+          {'id': 'e2', 'title': 'Сломанное', 'date': '2026-13-45'},
+          'мусор',
+        ],
+      });
+      expect(m.tasks.length, 1);
+      expect(m.findTask('a')!['date'], '2026-11-23');
+      expect(m.findTask('a')!.containsKey('deadline'), isFalse);
+      expect(m.events.map((e) => e['id']), ['e1']);
+    });
+
     test('поиск по заметке и метке', () {
       final m = makeModel(demo: {
         'tasks': [

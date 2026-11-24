@@ -213,8 +213,10 @@ class _SearchWindowState extends State<SearchWindow> {
     final words = q.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     void go(Json t) {
       m.selectDay(fromIso(t['date'] as String));
-      Navigator.pop(context);
-      sc.actions.openCard(context, t['id'] as String);
+      // окно поиска закрывается — карточку открываем от главного окна, а не от закрытого
+      final nav = Navigator.of(context);
+      nav.pop();
+      sc.actions.openCard(nav.context, t['id'] as String);
     }
 
     return Frame(
@@ -418,8 +420,9 @@ class WeeklyReview extends StatelessWidget {
         const SizedBox(height: 14),
         Wrap(spacing: 8, children: [
           Btn('Спланировать следующую неделю', () {
-            Navigator.pop(context);
-            sc.actions.openWeek(context, start: addDays(start, 7));
+            final nav = Navigator.of(context);
+            nav.pop();
+            sc.actions.openWeek(nav.context, start: addDays(start, 7));
           }, bold: true),
           if (undone.isNotEmpty)
             Btn('Перенести незавершённые цели (${undone.length})', () {

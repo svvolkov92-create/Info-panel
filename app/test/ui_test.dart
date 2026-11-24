@@ -90,6 +90,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Задачи на сегодня'), findsOneWidget);
 
+      // поиск: выбор задачи открывает её карточку
+      await tester.tap(find.byTooltip('Поиск задач (Ctrl+F)'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == 'Текст, заметка, подзадача или #метка'), 'юристам');
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.text('Матрица Эйзенхауэра'), findsWidgets); // открыта карточка
+      await tester.tap(find.text('Закрыть'));
+      await tester.pumpAndSettle();
+
       // сворачивание блока
       await tester.tap(find.text('Календарь'));
       await tester.pumpAndSettle();
