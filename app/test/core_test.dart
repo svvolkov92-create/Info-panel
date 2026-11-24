@@ -365,4 +365,39 @@ void main() {
       expect(m.tasks.every((t) => (t as Map)['project'] == null), isTrue);
     });
   });
+
+  group('архив', () {
+    test('раз в месяц старые выполненные уходят в archive.json', () {
+      final dir = Directory.systemTemp.createTempSync('panel_arch');
+      final st = Storage(dirPath: dir.path);
+      final m = PanelModel(storage: st, clock: () => today.add(const Duration(hours: 9)), network: false);
+      m.load(demo: {
+        'tasks': [
+          {'id': 'old', 'text': 'Сдать отчёт за сентябрь', 'date': '2026-09-30', 'done': true, 'tags': ['работа']},
+          {'id': 'fresh', 'text': 'Свежая', 'date': '2026-11-10', 'done': true},
+          {'id': 'open', 'text': 'Старая незакрытая', 'date': '2026-09-01', 'done': false},
+        ]
+      });
+      expect(m.tasks.map((t) => (t as Map)['id']), ['fresh', 'open']);
+      expect(st.readArchive().map((t) => (t as Map)['id']), ['old']);
+      expect(m.s['archive_month'], '2026-11');
+      expect(m.s['archive_count'], 1);
+
+      // в этом месяце второй раз не архивирует, даже если появилось старое
+      m.tasks.add({'id': 'old2', 'text': 'Ещё старая', 'date': '2026-09-02', 'done': true});
+      m.archiveMonthly();
+      expect(m.findTask('old2'), isNotNull);
+
+      expect(m.searchArchive('отчёт #работа').map((t) => t['id']), ['old']);
+      m.repeatFromArchive(m.searchArchive('отчёт').single);
+      final copy = m.tasks.last as Map;
+      expect([copy['text'], copy['date'], copy['done'], copy['tags']], ['Сдать отчёт за сентябрь', '2026-11-23', false, ['работа']]);
+
+      // ручной запуск дописывает, а не перезаписывает
+      m.archiveMonthly(force: true);
+      expect(st.readArchive().map((t) => (t as Map)['id']), ['old', 'old2']);
+      expect(m.searchArchive('ещё').single['id'], 'old2');
+      m.flushSave();
+    });
+  });
 }

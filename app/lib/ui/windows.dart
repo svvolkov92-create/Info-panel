@@ -204,6 +204,7 @@ class SearchWindow extends StatefulWidget {
 
 class _SearchWindowState extends State<SearchWindow> {
   String q = '';
+  bool inArchive = false;
 
   @override
   Widget build(BuildContext context) {
@@ -233,9 +234,13 @@ class _SearchWindowState extends State<SearchWindow> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Pill('и в архиве', inArchive, () => setState(() => inArchive = !inArchive)),
+        ),
         Text(
           words.isEmpty
-              ? 'Ищу по всем задачам: сегодняшним, будущим и выполненным за 30 дней'
+              ? 'Ищу по всем задачам: текущим, будущим, спискам GTD и выполненным за последний месяц-два'
               : 'Найдено: ${found.length}${found.length > 100 ? ' (показаны первые 100)' : ''}',
           style: T.tiny,
         ),
@@ -261,8 +266,34 @@ class _SearchWindowState extends State<SearchWindow> {
               ]),
             ),
           ),
+        if (inArchive && words.isNotEmpty) ..._archive(m, words),
       ]),
     );
+  }
+
+  List<Widget> _archive(PanelModel m, List<String> words) {
+    List<Json> found;
+    try {
+      found = m.searchArchive(q);
+    } catch (_) {
+      return [const SectionLabel('Архив'), Text('Архив не читается — подробности в журнале ошибок', style: T.small.copyWith(color: C.danger))];
+    }
+    return [
+      SectionLabel('В архиве: ${found.length}${found.length > 100 ? ' (показаны первые 100)' : ''}'),
+      for (final t in found.take(100))
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.check_circle, size: 14, color: C.faint),
+            SizedBox(
+              width: 78,
+              child: Text(' ${tryIso(t['date']) == null ? '' : shortDate(fromIso(t['date'] as String), m.today)}', style: T.tiny),
+            ),
+            Expanded(child: Text('${t['text']}', style: T.small.copyWith(color: C.muted))),
+            Btn('Повторить сегодня', () => m.repeatFromArchive(t), size: 11, pad: 4),
+          ]),
+        ),
+    ];
   }
 
   String? _snippet(Json t, List<String> words) {

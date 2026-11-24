@@ -12,6 +12,13 @@ class Storage {
 
   bool write(Map<String, dynamic> d) => true;
 
+  final _archive = <dynamic>[];
+  List<dynamic> readArchive() => _archive;
+  bool appendArchive(List<dynamic> items) {
+    _archive.addAll(items);
+    return true;
+  }
+
   void logError(String text) {}
 
   String get logPath => '';

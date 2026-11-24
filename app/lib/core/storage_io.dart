@@ -89,6 +89,36 @@ class Storage {
     }
   }
 
+  File get _archive => File(_p('archive.json'));
+
+  /// Архив выполненных задач (archive.json): читается только по запросу — при поиске в архиве.
+  List<dynamic> readArchive() {
+    if (!_archive.existsSync()) return [];
+    try {
+      final a = jsonDecode(_archive.readAsStringSync());
+      return a is Map && a['tasks'] is List ? a['tasks'] as List : [];
+    } catch (e, st) {
+      logError('archive.json не читается:\n$e\n$st');
+      throw StateError('archive.json не читается');
+    }
+  }
+
+  /// Дописать задачи в архив. false — не получилось; тогда задачи остаются в data.json.
+  bool appendArchive(List<dynamic> items) {
+    if (blocked) return false;
+    try {
+      final all = [...readArchive(), ...items];
+      dir.createSync(recursive: true);
+      final tmp = File(_p('archive.json.tmp'));
+      tmp.writeAsStringSync(jsonEncode({'tasks': all}), flush: true);
+      tmp.renameSync(_archive.path);
+      return true;
+    } catch (e, st) {
+      logError('Не удалось дописать архив:\n$e\n$st');
+      return false;
+    }
+  }
+
   void logError(String text) {
     try {
       dir.createSync(recursive: true);

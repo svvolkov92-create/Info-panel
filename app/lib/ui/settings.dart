@@ -157,6 +157,15 @@ class SettingsDialog extends StatelessWidget {
                         Btn('Открыть папку с данными', () => m.storage.openExternal(m.storage.dataDir), pad: 0),
                         Btn('Журнал ошибок', () => m.storage.openExternal(m.storage.logPath), color: C.muted),
                       ]),
+                      const SizedBox(height: 4),
+                      Text('Архив: выполненные задачи старше 30 дней раз в месяц уходят в archive.json. '
+                          'Ищутся через поиск с галочкой «и в архиве». Перенесено всего: ${s['archive_count'] ?? 0}.',
+                          style: T.tiny),
+                      Btn('Архивировать сейчас', () {
+                        final before = m.tasks.length;
+                        m.archiveMonthly(force: true);
+                        m.flash('В архив: ${before - m.tasks.length}', 'ok');
+                      }, pad: 0),
                     ],
                     const SectionLabel('О программе'),
                     Text('Информационная панель 2.0. Данные совместимы с прежней версией.', style: T.tiny),

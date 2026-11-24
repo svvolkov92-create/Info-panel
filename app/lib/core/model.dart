@@ -415,7 +415,6 @@ class PanelModel extends ChangeNotifier {
   // ===================== перенос, повторы =====================
   void carryOverTasks() {
     final t0 = iso(today);
-    final cutoff = iso(addDays(today, -30));
     final holdStart = updateHold();
     final target = holdStart != null ? iso(holdStart) : t0;
     final kept = [];
@@ -432,11 +431,11 @@ class PanelModel extends ChangeNotifier {
         t['carries'] = ((t['carries'] as num?) ?? 0).toInt() + 1;
         addLog(t, 'не закрыта — перенесена${target == t0 ? '' : ' (ждёт конца выходных)'}');
       }
-      if (t['done'] == true && (t['date'] as String).compareTo(cutoff) < 0) continue;
       kept.add(t);
     }
     data['tasks'] = kept;
     invalidate();
+    archiveMonthly();
     generateRecurring();
     applyAutoUrgency();
     data['events'] = [for (final e in data['events'] as List) if ('${(e as Map)['date']}'.compareTo(t0) >= 0) e];
@@ -1451,6 +1450,56 @@ class PanelModel extends ChangeNotifier {
     return set.toList()..sort();
   }
 
+  // ===================== архив =====================
+  /// Раз в месяц выполненные задачи старше 30 дней переезжают из data.json в archive.json.
+  /// В рабочем файле остаётся не больше двух месяцев сделанного — панель не тяжелеет с годами.
+  void archiveMonthly({bool force = false}) {
+    final month = iso(today).substring(0, 7);
+    if (!force && s['archive_month'] == month) return;
+    final cutoff = iso(addDays(today, -30));
+    bool old(Json t) => t['done'] == true && '${t['date'] ?? t['done_at'] ?? ''}'.compareTo(cutoff) < 0;
+    final out = [for (final t in tasks) if (old(t as Json)) t];
+    if (out.isNotEmpty) {
+      _arch = null;
+      if (!storage.appendArchive(out)) return; // не записали архив — ничего не трогаем, попробуем завтра
+      data['tasks'] = [for (final t in tasks) if (!old(t as Json)) t];
+      invalidate();
+    }
+    s['archive_month'] = month;
+    s['archive_count'] = ((s['archive_count'] as num?) ?? 0).toInt() + out.length;
+    save();
+  }
+
+  /// Поиск по архиву: файл читается только здесь. Новые сверху.
+  List<dynamic>? _arch;
+
+  List<Json> searchArchive(String query) {
+    final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return [];
+    final found = [
+      for (final x in _arch ??= storage.readArchive())
+        if (x is Map && words.every(_hay(x as Json).contains)) x,
+    ];
+    return stableSorted(found, (a, b) => '${b['date']}'.compareTo('${a['date']}'));
+  }
+
+  /// Задача из архива — снова в работу: копия на сегодня.
+  void repeatFromArchive(Json t) {
+    final n = newTask('${t['text']}', date: today);
+    for (final k in ['tags', 'est', 'priority', 'note']) {
+      if (t[k] != null) n[k] = jsonDecode(jsonEncode(t[k]));
+    }
+    tasks.add(n);
+    afterTasksChanged();
+    flash('Добавлена на сегодня', 'ok');
+  }
+
+  String _hay(Json t) => [
+        t['text'], t['note'] ?? '',
+        for (final x in (t['subs'] as List?) ?? const []) (x as Map)['text'],
+        for (final g in (t['tags'] as List?) ?? const []) '#$g',
+      ].join('\n').toLowerCase();
+
   // ===================== GTD =====================
   /// Раздел в режиме окна: 'panel' — обычная панель, иначе раздел GTD.
   String gtdView = 'panel';
@@ -1640,12 +1689,7 @@ class PanelModel extends ChangeNotifier {
   List<Json> search(String query) {
     final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     if (words.isEmpty) return [];
-    String hay(Json t) => [
-          t['text'], t['note'] ?? '',
-          for (final x in (t['subs'] as List?) ?? const []) (x as Map)['text'],
-          for (final g in (t['tags'] as List?) ?? const []) '#$g',
-        ].join('\n').toLowerCase();
-    final found = [for (final t in tasks) if (words.every((w) => hay(t as Json).contains(w))) t as Json];
+    final found = [for (final t in tasks) if (words.every(_hay(t as Json).contains)) t as Json];
     found.sort((a, b) {
       final d = (a['done'] == true ? 1 : 0) - (b['done'] == true ? 1 : 0);
       return d != 0 ? d : '${a['date']}'.compareTo('${b['date']}');
