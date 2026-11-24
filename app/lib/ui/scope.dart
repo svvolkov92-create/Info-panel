@@ -22,6 +22,7 @@ abstract class PanelActions {
   void openCard(BuildContext context, String id);
   void openWeek(BuildContext context, {DateTime? start});
   void openMatrix(BuildContext context);
+  void openGtd(BuildContext context, String view);
   void openSearch(BuildContext context);
   void openSettings(BuildContext context);
   void openWeeklyReview(BuildContext context);

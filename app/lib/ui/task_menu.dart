@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/core.dart';
 import '../core/model.dart';
+import 'gtd.dart';
 import 'scope.dart';
 import 'theme.dart';
 
@@ -69,6 +70,7 @@ List<Widget> taskMenuItems(BuildContext context, String id, {VoidCallback? onEdi
   final t = m.findTask(id);
   if (t == null) return const [];
   final d = dayOf(t, m.today);
+  final dated = t['date'] is String;
   final today = m.today;
   final tomorrow = addDays(today, 1);
   final monday = addDays(today, 7 - wd(today));
@@ -80,10 +82,24 @@ List<Widget> taskMenuItems(BuildContext context, String id, {VoidCallback? onEdi
     if (onEdit != null) _item('Изменить текст', onEdit),
     if (onSubs != null) _item('Добавить подзадачу', onSubs),
     const Divider(height: 6),
-    if (d != today) _item('Перенести на сегодня', () => m.moveTaskDate(id, today)),
-    if (d != tomorrow) _item('Перенести на завтра', () => m.moveTaskDate(id, tomorrow)),
+    if (!dated || d != today) _item(dated ? 'Перенести на сегодня' : 'В календарь на сегодня', () => m.moveTaskDate(id, today)),
+    if (!dated || d != tomorrow) _item('Перенести на завтра', () => m.moveTaskDate(id, tomorrow)),
     _item('Перенести на понедельник, ${dayLong(monday)}', () => m.moveTaskDate(id, monday)),
     _item('Перенести на дату…', () => a.askDate(context, id)),
+    if (m.s['gtd'] != false)
+      _sub('GTD', [
+        for (final e in gtdLists.entries)
+          if (e.key != 'waiting') _item(e.value, () => m.setList(id, e.key), checked: t['list'] == e.key),
+        _item(t['list'] == 'waiting' ? 'Жду: ${t['waiting_for'] ?? ''}…' : 'Поручить…', () => askDelegate(context, id),
+            checked: t['list'] == 'waiting'),
+        if (m.projectsBy('active').isNotEmpty)
+          _sub('Проект', [
+            _item('Без проекта', () => m.setField(id, 'project', null), checked: t['project'] == null),
+            for (final p in m.projectsBy('active'))
+              _item(short(p['title'] as String, 40), () => m.setField(id, 'project', p['id']), checked: t['project'] == p['id']),
+          ]),
+        _item('Сделать проектом…', () => askProject(context, fromTask: id)),
+      ]),
     const Divider(height: 6),
     _sub('Приоритет', [
       for (final p in priorities) _item(p.$2, () => m.setField(id, 'priority', p.$1), checked: t['priority'] == p.$1),

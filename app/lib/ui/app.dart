@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../core/core.dart';
 import '../core/model.dart';
 import 'desktop.dart';
+import 'gtd.dart';
 import 'panel.dart';
 import 'scope.dart';
 import 'settings.dart';
@@ -256,6 +257,9 @@ class AppActions implements PanelActions {
 
   @override
   void openMatrix(BuildContext context) => _show(context, const Size(900, 720), () => const MatrixWindow());
+
+  @override
+  void openGtd(BuildContext context, String view) => _show(context, const Size(680, 760), () => GtdWindow(view: view));
 
   @override
   void openSearch(BuildContext context) => _show(context, const Size(540, 620), () => const SearchWindow());

@@ -100,6 +100,7 @@ class SettingsDialog extends StatelessWidget {
                     slider('Масштаб', numOf('ui_scale', 0.85), 0.6, 1.4, 16, '${(numOf('ui_scale', 0.85) * 100).round()} %',
                         (v) => m.setSetting('ui_scale', (v * 20).round() / 20)),
                     check('Компактно: меньше отступов', 'ui_compact'),
+                    check('GTD: входящие, проекты, «жду» (в окне — колонка слева)', 'gtd'),
                     slider('Шрифт задач', numOf('task_font', 10), 8, 16, 8, '${numOf('task_font', 10).round()}',
                         (v) => m.setSetting('task_font', v.round())),
                     slider('Отступ между задачами', numOf('task_gap', 1), 0, 8, 8, '${numOf('task_gap', 1).round()} px',

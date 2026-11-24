@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:desktop_panel/core/core.dart';
 import 'package:desktop_panel/core/model.dart';
 import 'package:desktop_panel/core/storage.dart';
 import 'package:desktop_panel/ui/app.dart';
@@ -119,4 +120,66 @@ void main() {
       m.dispose();
     });
   }
+
+  Finder hint(String h) => find.byWidgetPredicate((w) => w is TextField && w.decoration?.hintText == h);
+
+  Future<void> submit(WidgetTester tester, String h, String text) async {
+    await tester.enterText(hint(h), text);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('GTD в окне: входящие, разбор, проекты, обзор', (tester) async {
+    final m = model();
+    await pump(tester, m, const Size(1280, 820));
+    await tester.tap(find.text('Входящие').first);
+    await tester.pumpAndSettle();
+    await submit(tester, 'Мысль, дело, идея — и Enter', 'Позвонить в банк @телефон');
+    expect(m.inboxCount, 1);
+    expect(find.text('@телефон'), findsWidgets);
+
+    await tester.tap(find.text('Разобрать по одной'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Как только смогу → следующие действия'));
+    await tester.pumpAndSettle();
+    expect(m.gtdList('next').length, 1);
+    expect(find.text('Разбирать нечего — входящие пусты.'), findsOneWidget);
+
+    await tester.tap(find.text('Проекты').first);
+    await tester.pumpAndSettle();
+    await submit(tester, 'Новый проект и Enter', 'Ремонт');
+    expect(find.text('нет следующего шага'), findsOneWidget);
+    await submit(tester, 'Какой следующий шаг? Enter', 'Купить краску');
+    expect(m.projectStuck(m.projects.single['id'] as String), isFalse);
+
+    for (final v in ['Следующие действия', 'Жду', 'Когда-нибудь', 'Еженедельный обзор']) {
+      await tester.tap(find.text(v).first);
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Обзор завершён'));
+    await tester.pumpAndSettle();
+    expect(m.s['gtd_review_week'], weekKey(m.today));
+
+    await tester.tap(find.text('Панель'));
+    await tester.pumpAndSettle();
+    expect(find.text('Будущие задачи'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    m.dispose();
+  });
+
+  testWidgets('GTD в узкой панели: окно входящих из шапки', (tester) async {
+    final m = model();
+    await pump(tester, m, const Size(380, 1000));
+    await tester.tap(find.byTooltip('Входящие пусты'));
+    await tester.pumpAndSettle();
+    await submit(tester, 'Мысль, дело, идея — и Enter', 'Идея для отпуска');
+    expect(m.inboxCount, 1);
+    await tester.tap(find.text('Проекты 0').evaluate().isEmpty ? find.text('Проекты') : find.text('Проекты 0'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.close).last);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Во входящих 1 — разобрать'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    m.dispose();
+  });
 }

@@ -7,6 +7,7 @@ import '../core/core.dart';
 import '../core/model.dart';
 import 'blocks.dart';
 import 'desktop.dart';
+import 'gtd.dart';
 import 'scope.dart';
 import 'tasks_block.dart';
 import 'theme.dart';
@@ -41,13 +42,21 @@ class PanelView extends StatelessWidget {
       }
       final left = keys.where((k) => !rightColumn.contains(k)).toList();
       final right = keys.where(rightColumn.contains).toList();
-      return Padding(
-        padding: EdgeInsets.all(gap + 2),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Header(desk: desk),
-          SizedBox(height: gap),
-          Expanded(
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      final gtd = m.s['gtd'] != false && c.maxWidth >= 860;
+      final panel = gtd && m.gtdView != 'panel'
+          ? Scrollbar(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(4, 2, 12, 16),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: GtdView(view: m.gtdView, onGo: m.setGtdView),
+                  ),
+                ),
+              ),
+            )
+          : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(
                 width: 340,
                 child: Scrollbar(child: ListView(children: [for (final k in left) BlockCard(blockKey: k, gap: gap)])),
@@ -56,7 +65,20 @@ class PanelView extends StatelessWidget {
               Expanded(
                 child: Scrollbar(child: ListView(children: [for (final k in right) BlockCard(blockKey: k, gap: gap)])),
               ),
-            ]),
+            ]);
+      return Padding(
+        padding: EdgeInsets.all(gap + 2),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Header(desk: desk),
+          SizedBox(height: gap),
+          Expanded(
+            child: gtd
+                ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const SizedBox(width: 170, child: SingleChildScrollView(child: GtdRail())),
+                    SizedBox(width: gap + 6),
+                    Expanded(child: panel),
+                  ])
+                : panel,
           ),
         ]),
       );
@@ -87,6 +109,7 @@ class Header extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: _dragArea(clock)),
+        if (m.s['gtd'] != false) _InboxButton(desk: desk),
         IconBtn(Icons.search, 'Поиск задач (Ctrl+F)', () => sc.actions.openSearch(context)),
         PopupMenuButton<VoidCallback>(
           tooltip: 'Меню',
@@ -97,6 +120,7 @@ class Header extends StatelessWidget {
           itemBuilder: (_) => [
             PopupMenuItem(value: () => sc.actions.openWeek(context), child: const Text('Неделя')),
             PopupMenuItem(value: () => sc.actions.openMatrix(context), child: const Text('Матрица Эйзенхауэра')),
+            if (m.s['gtd'] != false) PopupMenuItem(value: () => sc.actions.openGtd(context, 'inbox'), child: const Text('GTD: входящие, проекты…')),
             PopupMenuItem(value: () => _templates(context), child: const Text('Шаблоны…')),
             PopupMenuItem(value: () => sc.actions.openWeeklyReview(context), child: const Text('Обзор недели')),
             PopupMenuItem(value: () => sc.actions.openUnload(context), child: const Text('Разгрузить выбранный день…')),
@@ -152,6 +176,41 @@ class Header extends StatelessWidget {
       items: items,
     );
     f?.call();
+  }
+}
+
+/// Значок входящих в шапке: число неразобранных. В окне с колонкой GTD открывает раздел, в виджете — окно GTD.
+class _InboxButton extends StatelessWidget {
+  const _InboxButton({this.desk});
+  final DesktopWindow? desk;
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = Scope.of(context);
+    final n = sc.m.inboxCount;
+    return Tooltip(
+      message: n == 0 ? 'Входящие пусты' : 'Во входящих $n — разобрать',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(5),
+        hoverColor: C.hover,
+        onTap: () {
+          final w = MediaQuery.sizeOf(context).width;
+          final rail = w >= 860 && (desk == null || !desk!.widgetMode || w >= 900);
+          if (rail) {
+            sc.m.setGtdView(sc.m.gtdView == 'inbox' ? 'panel' : 'inbox');
+          } else {
+            sc.actions.openGtd(context, 'inbox');
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.inbox_outlined, size: 16, color: n > 0 ? C.accent : C.muted),
+            if (n > 0) Padding(padding: const EdgeInsets.only(left: 2), child: Text('$n', style: T.tiny.copyWith(color: C.accent))),
+          ]),
+        ),
+      ),
+    );
   }
 }
 

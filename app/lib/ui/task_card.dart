@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/core.dart';
 import '../core/model.dart';
+import 'gtd.dart';
 import 'scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -102,6 +103,7 @@ class _TaskCardState extends State<TaskCard> {
     }
     final done = t['done'] == true;
     final d = dayOf(t, m.today);
+    final dated = t['date'] is String;
     final today = m.today;
     final monday = addDays(today, 7 - wd(today));
     final rule = m.ruleOf(t);
@@ -151,7 +153,8 @@ class _TaskCardState extends State<TaskCard> {
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   section('when', 'Когда', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(dateTitle(d, today), style: T.norm),
+                    Text(dated ? dateTitle(d, today) : 'Без даты — список «${gtdLists[t['list']] ?? 'Входящие'}»',
+                        style: T.norm.copyWith(color: dated ? C.fg : C.muted)),
                     const SizedBox(height: 4),
                     Wrap(children: [
                       for (final (label, day) in [
@@ -160,7 +163,7 @@ class _TaskCardState extends State<TaskCard> {
                         ('Пн', monday),
                         ('+неделя', addDays(d, 7)),
                       ])
-                        Pill(label, day == d, () => m.moveTaskDate(id, day)),
+                        Pill(label, dated && day == d, () => m.moveTaskDate(id, day)),
                       Pill('Дата…', false, () => a.askDate(context, id)),
                     ]),
                     Wrap(children: [
@@ -207,6 +210,7 @@ class _TaskCardState extends State<TaskCard> {
                       },
                     ),
                   ])),
+                  if (m.s['gtd'] != false) section('gtd', 'GTD', _gtd(context, m, t)),
                   section('goal', 'Цель недели', goals.isEmpty
                       ? Text('На эту неделю целей нет — их задают в блоке «Цели недели»', style: T.tiny.copyWith(color: C.faint))
                       : Wrap(children: [
@@ -316,6 +320,34 @@ class _TaskCardState extends State<TaskCard> {
         ]),
       ),
     );
+  }
+
+  Widget _gtd(BuildContext context, PanelModel m, Json t) {
+    final id = t['id'] as String;
+    final list = t['list'] as String?;
+    final tags = [for (final g in (t['tags'] as List?) ?? const []) '$g'];
+    final projects = m.projectsBy('active');
+    final project = m.findProject(t['project']);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(children: [
+        Pill('В календаре', list == null, () => m.setList(id, null)),
+        for (final e in gtdLists.entries)
+          if (e.key != 'waiting') Pill(e.value, list == e.key, () => m.setList(id, e.key)),
+        Pill(list == 'waiting' ? 'Жду: ${t['waiting_for'] ?? ''}' : 'Поручить…', list == 'waiting', () => askDelegate(context, id), color: C.warn),
+      ]),
+      Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+        Padding(padding: const EdgeInsets.only(right: 4, bottom: 4), child: Text('Где:', style: T.small.copyWith(color: C.muted))),
+        for (final c in {...m.contexts(), ...tags.where((g) => g.startsWith('@'))})
+          Pill(c, tags.contains(c), () => m.toggleContext(id, c), color: tagColor(c)),
+      ]),
+      Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+        Padding(padding: const EdgeInsets.only(right: 4, bottom: 4), child: Text('Проект:', style: T.small.copyWith(color: C.muted))),
+        Pill('нет', project == null, () => m.setField(id, 'project', null), color: C.rest),
+        for (final p in {...projects, if (project != null) project})
+          Pill(short(p['title'] as String, 24), project?['id'] == p['id'], () => m.setField(id, 'project', p['id']), color: C.rest),
+        Pill('Сделать проектом…', false, () => askProject(context, fromTask: id), color: C.rest),
+      ]),
+    ]);
   }
 
   Widget _matrix(PanelModel m, Json t) {

@@ -37,6 +37,7 @@ Json defaultSettings() => {
       'ui_mode': 'widget', // widget | window
       'ui_scale': 0.85,
       'ui_compact': true,
+      'gtd': true,
       'ui_layer': 'normal', // normal | top | bottom | desktop
       'ui_bounds': null, // [x, y, w, h] виджета
       'ui_bounds_window': null, // [x, y, w, h] окна
@@ -1451,6 +1452,14 @@ class PanelModel extends ChangeNotifier {
   }
 
   // ===================== GTD =====================
+  /// Раздел в режиме окна: 'panel' — обычная панель, иначе раздел GTD.
+  String gtdView = 'panel';
+
+  void setGtdView(String v) {
+    gtdView = v;
+    notifyListeners();
+  }
+
   List<Json> gtdList(String list) => stableSorted(
         [for (final t in tasks) if ((t as Json)['list'] == list && t['done'] != true) t],
         (a, b) => '${a['created'] ?? ''}'.compareTo('${b['created'] ?? ''}'),
@@ -1490,7 +1499,12 @@ class PanelModel extends ChangeNotifier {
     final t = findTask(id);
     if (t == null) return;
     if (list == null) {
-      moveTaskDate(id, t['date'] is String ? fromIso(t['date'] as String) : selected);
+      _leaveList(t);
+      if (t['date'] is String) {
+        afterTasksChanged();
+      } else {
+        moveTaskDate(id, selected);
+      }
       return;
     }
     t['list'] = list;
