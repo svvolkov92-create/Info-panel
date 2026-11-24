@@ -27,10 +27,11 @@ jobs:
           flutter pub deps --style=compact 2>&1 | grep -E "^- (tray_manager|local_notifier|window_manager|ffi) " | tee -a check.log
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test 2>&1 | tee -a check.log
           flutter test 2>&1 | tail -400 | tee -a check.log
+          grep "BENCH" check.log > bench.log || true
       - name: Save log
         if: always()
         run: |
-          mkdir -p /tmp/log && cp check.log /tmp/log/check.log
+          mkdir -p /tmp/log && cp check.log /tmp/log/check.log && (cp bench.log /tmp/log/ 2>/dev/null || true)
           cd /tmp/log && git init -q -b ci-logs-app && git add -A
           git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm log
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-logs-app
