@@ -182,4 +182,33 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
     m.dispose();
   });
+
+  testWidgets('прошлый день: «всё сделано» только если ничего не перенеслось', (tester) async {
+    final dir = Directory.systemTemp.createTempSync('panel_ui');
+    final m = PanelModel(storage: Storage(dirPath: dir.path), clock: () => now, network: false);
+    m.load(demo: {
+      'tasks': [
+        {'id': 'a', 'text': 'Сделанная', 'date': '2026-11-20', 'done': true},
+        {'id': 'b', 'text': 'Перенесённая', 'date': '2026-11-23', 'from': '2026-11-20', 'done': false},
+        {'id': 'c', 'text': 'Тоже сделанная', 'date': '2026-11-21', 'done': true},
+      ]
+    });
+    await pump(tester, m, const Size(380, 1000));
+    m.selectDay(DateTime(2026, 11, 20));
+    await tester.pump();
+    expect(find.text('сделано 1 из 2'), findsOneWidget);
+    expect(find.textContaining('всё сделано'), findsNothing);
+    m.selectDay(DateTime(2026, 11, 21)); // через 21-е задача тоже переносилась
+    await tester.pump();
+    expect(find.text('сделано 1 из 2'), findsOneWidget);
+    m.selectDay(DateTime(2026, 11, 19));
+    await tester.pump();
+    expect(find.textContaining('всё сделано'), findsNothing);
+    m.selectDay(DateTime(2026, 11, 23));
+    m.toggleTask('b');
+    await tester.pump();
+    expect(find.text('всё сделано ✓ 1'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    m.dispose();
+  });
 }

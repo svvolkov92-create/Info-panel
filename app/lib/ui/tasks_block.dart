@@ -26,6 +26,8 @@ class TasksHeader extends StatelessWidget {
         : wdShort[wd(d)].toLowerCase() + (d.year != m.today.year ? ', ${d.year}' : '');
     final all = m.tasksFor(d);
     final done = all.where((t) => t['done'] == true).length;
+    // в прошлом дне перенесённые задачи считаются несделанными: «всё сделано» — только если ничего не перенеслось
+    final total = all.length + m.carriedThrough(d).length;
     final est = m.loadMinutes(d);
     final limit = m.dayHoursMinutes();
     final hours = '${(m.s['day_hours'] as num? ?? 8)}'.replaceAll('.0', '').replaceAll('.', ',');
@@ -41,8 +43,8 @@ class TasksHeader extends StatelessWidget {
         valueListenable: m.status,
         builder: (_, st, __) {
           if (st != null) return Text(st.$1, style: T.tiny.copyWith(color: levelColor(st.$2)));
-          if (all.isNotEmpty && done == all.length) return Text('всё сделано ✓ $done', style: T.tiny.copyWith(color: C.ok));
-          return Text(all.isEmpty ? '' : '$done из ${all.length}', style: T.tiny);
+          if (total > 0 && done == total) return Text('всё сделано ✓ $done', style: T.tiny.copyWith(color: C.ok));
+          return Text(total == 0 ? '' : 'сделано $done из $total', style: T.tiny);
         },
       ),
     ]));
