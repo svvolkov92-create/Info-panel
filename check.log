@@ -1,0 +1,121 @@
+Changed 41 dependencies!
+5 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+- ffi 2.2.0
+- local_notifier 0.1.6 [flutter uuid]
+- tray_manager 0.5.3 [flutter menu_base path shortid]
+- window_manager 0.5.2 [flutter path screen_retriever]
+Analyzing 2 items...                                            
+
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart'. Try removing the import directive • lib/main.dart:1:8 • unnecessary_import
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/main.dart:4:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/app.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/blocks.dart:4:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/desktop.dart:5:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/gtd.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/panel.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/scope.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/settings.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/task_card.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/task_menu.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/tasks_block.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/theme.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/widgets.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/windows.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/bench_test.dart:9:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/ui_test.dart:8:1 • deprecated_member_use
+
+17 issues found. (ran in 6.4s)
+
+::group::✅ Passing tests
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: даты parseDate
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: даты dateTitle и futureDateText
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: даты daysBetween через переход времени
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода время, метки, оценка
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода дата в начале, квадрант, приоритет, дедлайн
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода точка: дата или время
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода «во вторник» и «в среду»
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода оценка без единицы
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода вставка списком
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: разбор ввода будущая задача с датой в конце
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: повторы правила
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: повторы тексты правил
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: выходные в субботу держим пятницу
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: склонения и форматы plural и fmtEst
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: склонения и форматы цвет метки как в Python (crc32)
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель добавление, выполнение, отмена
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель перенос незакрытых на сегодня с пометкой
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель в субботу задачи пятницы не переносятся, но видны сегодня
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель повторяющаяся задача создаётся раз в день
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель авто-срочность при близком дедлайне
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель правка одной строкой
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель сохранение и чтение файла
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель цели недели и прогресс
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель шаблон дня
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель напоминание за 10 минут
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель испорченные события и задачи не ломают загрузку
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: модель поиск по заметке и метке
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: GTD @контекст разбирается в метку
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: GTD входящие живут без даты и не переносятся
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: GTD списки, делегирование и возврат в календарь
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: GTD проекты и следующий шаг
+✅ /home/runner/work/Info-panel/Info-panel/app/test/core_test.dart: архив раз в месяц старые выполненные уходят в archive.json
+✅ /home/runner/work/Info-panel/Info-panel/app/test/bench_test.dart: модель: 500 задач
+BENCH [500] загрузка и перенос                      110.98 ms
+BENCH [500] список дня (×1)                           0.09 ms
+BENCH [500] будущие задачи (×1)                       0.20 ms
+BENCH [500] отметить выполненной (×1)                 7.37 ms
+BENCH [500] отмена (×1)                              11.07 ms
+BENCH [500] поиск                                     4.91 ms
+BENCH [500] запись файла                             16.86 ms
+BENCH [500] размер data.json, КБ                    365.81 ms
+BENCH [500] память истории отмены, МБ (20 шагов)      0.19 ms
+✅ /home/runner/work/Info-panel/Info-panel/app/test/bench_test.dart: модель: 3000 задач
+BENCH [3000] загрузка и перенос                     187.74 ms
+BENCH [3000] список дня (×1)                          0.11 ms
+BENCH [3000] будущие задачи (×1)                      0.20 ms
+BENCH [3000] отметить выполненной (×1)               33.20 ms
+BENCH [3000] отмена (×1)                             67.06 ms
+BENCH [3000] поиск                                    6.28 ms
+BENCH [3000] запись файла                            42.38 ms
+BENCH [3000] размер data.json, КБ                  1857.82 ms
+BENCH [3000] память истории отмены, МБ (20 шагов)      1.04 ms
+✅ /home/runner/work/Info-panel/Info-panel/app/test/ui_test.dart: панель 380px: блоки, карточка, окна
+✅ /home/runner/work/Info-panel/Info-panel/app/test/ui_test.dart: панель 1280px: блоки, карточка, окна
+✅ /home/runner/work/Info-panel/Info-panel/app/test/ui_test.dart: GTD в окне: входящие, разбор, проекты, обзор
+✅ /home/runner/work/Info-panel/Info-panel/app/test/ui_test.dart: GTD в узкой панели: окно входящих из шапки
+✅ /home/runner/work/Info-panel/Info-panel/app/test/ui_test.dart: прошлый день: «всё сделано» только если ничего не перенеслось
+✅ /home/runner/work/Info-panel/Info-panel/app/test/bench_test.dart: интерфейс: 500 задач
+BENCH [500] первый показ панели                    1515.27 ms
+BENCH [500] отметка + перерисовка (×1)              239.87 ms
+BENCH [500] выбор дня + перерисовка (×1)            230.56 ms
+BENCH [500] перерисовка, только блок calendar        39.17 ms
+BENCH [500] перерисовка, только блок goals           19.32 ms
+BENCH [500] перерисовка, только блок tasks           28.39 ms
+BENCH [500] перерисовка, только блок future          63.96 ms
+BENCH [500] перерисовка, только блок week            40.22 ms
+BENCH [500] перерисовка, только блок pomo            24.36 ms
+BENCH [500] перерисовка, только блок notes           31.49 ms
+BENCH [500] перерисовка, только блок stats           21.80 ms
+BENCH [500] перерисовка, только блок events          22.34 ms
+BENCH [500] перерисовка, только блок none            16.09 ms
+BENCH [500] тик часов (×1)                            2.53 ms
+✅ /home/runner/work/Info-panel/Info-panel/app/test/ui_test.dart: тема «Уголёк» включается из настроек без перезапуска
+✅ /home/runner/work/Info-panel/Info-panel/app/test/bench_test.dart: интерфейс: 3000 задач
+BENCH [3000] первый показ панели                    794.94 ms
+BENCH [3000] отметка + перерисовка (×1)             271.74 ms
+BENCH [3000] выбор дня + перерисовка (×1)           206.19 ms
+BENCH [3000] перерисовка, только блок calendar       49.73 ms
+BENCH [3000] перерисовка, только блок goals          37.35 ms
+BENCH [3000] перерисовка, только блок tasks          75.32 ms
+BENCH [3000] перерисовка, только блок future         76.75 ms
+BENCH [3000] перерисовка, только блок week           55.91 ms
+BENCH [3000] перерисовка, только блок pomo           36.24 ms
+BENCH [3000] перерисовка, только блок notes          38.54 ms
+BENCH [3000] перерисовка, только блок stats          44.36 ms
+BENCH [3000] перерисовка, только блок events         39.69 ms
+BENCH [3000] перерисовка, только блок none           33.39 ms
+BENCH [3000] тик часов (×1)                           2.14 ms
+::endgroup::
+
+🎉 42 tests passed.
