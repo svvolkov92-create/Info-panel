@@ -284,7 +284,7 @@ class _SearchWindowState extends State<SearchWindow> {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Icon(Icons.check_circle, size: 14, color: C.faint),
+            Icon(Icons.check_circle, size: 14, color: C.faint),
             SizedBox(
               width: 78,
               child: Text(' ${tryIso(t['date']) == null ? '' : shortDate(fromIso(t['date'] as String), m.today)}', style: T.tiny),
@@ -627,7 +627,7 @@ List<PopupMenuEntry<VoidCallback>> templateMenu(BuildContext context) {
     for (final tpl in m.templates)
       PopupMenuItem(
         value: () => m.deleteTemplate(tpl['id'] as String),
-        child: Text('Удалить шаблон «${tpl['name']}»', style: const TextStyle(color: C.danger)),
+        child: Text('Удалить шаблон «${tpl['name']}»', style: TextStyle(color: C.danger)),
       ),
   ];
 }

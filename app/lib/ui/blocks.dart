@@ -134,19 +134,19 @@ class _Day extends StatelessWidget {
     final evs = m.events.where((e) => e['date'] == iso(d));
     return Tooltip(
       waitDuration: const Duration(milliseconds: 450),
-      richMessage: TextSpan(style: const TextStyle(fontSize: 12, color: C.fg, height: 1.4), children: [
+      richMessage: TextSpan(style: TextStyle(fontSize: 12, color: C.fg, height: 1.4), children: [
         TextSpan(text: '${weekdays[wd(d)]}, ${dayLong(d)}', style: const TextStyle(fontWeight: FontWeight.w600)),
-        if (holiday.isNotEmpty) TextSpan(text: '\n$holiday', style: const TextStyle(color: C.danger)),
-        if (kind == 'short') const TextSpan(text: '\nСокращённый рабочий день', style: TextStyle(color: C.warn)),
-        if (kind == 'moved') const TextSpan(text: '\nРабочий день (перенос выходного)', style: TextStyle(color: C.warn)),
-        for (final e in evs) TextSpan(text: '\n★ ${e['title']}', style: const TextStyle(color: C.accent)),
+        if (holiday.isNotEmpty) TextSpan(text: '\n$holiday', style: TextStyle(color: C.danger)),
+        if (kind == 'short') TextSpan(text: '\nСокращённый рабочий день', style: TextStyle(color: C.warn)),
+        if (kind == 'moved') TextSpan(text: '\nРабочий день (перенос выходного)', style: TextStyle(color: C.warn)),
+        for (final e in evs) TextSpan(text: '\n★ ${e['title']}', style: TextStyle(color: C.accent)),
         for (final t in items.take(8))
           TextSpan(
             text: '\n${t['done'] == true ? '✓' : '•'} ${short(taskLine(t), 44)}',
             style: TextStyle(color: t['done'] == true ? C.muted : (prioColor[t['priority']] ?? C.fg)),
           ),
-        if (items.length > 8) TextSpan(text: '\nи ещё ${items.length - 8}', style: const TextStyle(color: C.muted)),
-        if (items.isEmpty) const TextSpan(text: '\nЗадач нет', style: TextStyle(color: C.faint)),
+        if (items.length > 8) TextSpan(text: '\nи ещё ${items.length - 8}', style: TextStyle(color: C.muted)),
+        if (items.isEmpty) TextSpan(text: '\nЗадач нет', style: TextStyle(color: C.faint)),
       ]),
       child: cell,
     );
@@ -197,7 +197,7 @@ class _GoalRow extends StatelessWidget {
     final menu = MenuController();
     return MenuAnchor(
       controller: menu,
-      style: const MenuStyle(backgroundColor: WidgetStatePropertyAll(C.card)),
+      style: MenuStyle(backgroundColor: WidgetStatePropertyAll(C.card)),
       menuChildren: [
         MenuItemButton(onPressed: () => m.setSetting('filter', 'goal:$id'), child: const Text('Показать задачи этой цели')),
         MenuItemButton(
@@ -209,7 +209,7 @@ class _GoalRow extends StatelessWidget {
           child: const Text('Переименовать…'),
         ),
         MenuItemButton(onPressed: () => m.moveGoals([g], addDays(m.today, 7)), child: const Text('Перенести на следующую неделю')),
-        MenuItemButton(onPressed: () => m.deleteGoal(id), child: const Text('Удалить цель', style: TextStyle(color: C.danger))),
+        MenuItemButton(onPressed: () => m.deleteGoal(id), child: Text('Удалить цель', style: TextStyle(color: C.danger))),
       ],
       child: GestureDetector(
         onSecondaryTapDown: (d) => menu.open(position: d.localPosition),
@@ -363,9 +363,9 @@ class _FutureRowState extends State<_FutureRow> {
 
 Color heatColor(int minutes, int limit) {
   if (minutes == 0) return C.card;
-  if (minutes > limit) return const Color(0xFF4A2F3A);
-  if (minutes > limit * 0.6) return const Color(0xFF443C2E);
-  return const Color(0xFF2E3A52);
+  if (minutes > limit) return C.heat[2];
+  if (minutes > limit * 0.6) return C.heat[1];
+  return C.heat[0];
 }
 
 /// Семь дней, начиная с today; фон — по сумме оценок задач.
@@ -509,7 +509,7 @@ class PomoBlock extends StatelessWidget {
       Row(children: [
         ValueListenableBuilder(
           valueListenable: m.clock,
-          builder: (_, __, ___) => Text(m.pomoClock, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: C.fg)),
+          builder: (_, __, ___) => Text(m.pomoClock, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: C.fg)),
         ),
         const Spacer(),
         Btn(m.pomoRunning ? 'Пауза' : 'Старт', m.pomoToggle, size: 13, bold: true),
@@ -544,7 +544,7 @@ class FocusView extends StatelessWidget {
         valueListenable: m.clock,
         builder: (_, __, ___) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('${m.pomoModeName}${m.pomoRunning ? '' : ', пауза'}', style: T.small.copyWith(color: C.accent)),
-          Text(m.pomoClock, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w300, color: C.fg)),
+          Text(m.pomoClock, style: TextStyle(fontSize: 40, fontWeight: FontWeight.w300, color: C.fg)),
           Text(t != null ? t['text'] as String : 'Без привязки к задаче', style: T.norm.copyWith(color: t != null ? C.fg : C.faint)),
           const SizedBox(height: 8),
           Row(children: [

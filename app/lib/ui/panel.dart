@@ -113,7 +113,7 @@ class Header extends StatelessWidget {
         IconBtn(Icons.search, 'Поиск задач (Ctrl+F)', () => sc.actions.openSearch(context)),
         PopupMenuButton<VoidCallback>(
           tooltip: 'Меню',
-          icon: const Icon(Icons.more_horiz, size: 18, color: C.muted),
+          icon: Icon(Icons.more_horiz, size: 18, color: C.muted),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 220),
           onSelected: (f) => f(),
@@ -227,30 +227,30 @@ class BlockCard extends StatelessWidget {
     final shut = m.collapsed(blockKey);
     final compact = m.s['ui_compact'] != false;
     final (Widget title, Widget? trailing, Widget body) = switch (blockKey) {
-      'calendar' => (const Text('Календарь', style: T.title), null, const CalendarBlock()),
+      'calendar' => (Text('Календарь', style: T.title), null, const CalendarBlock()),
       'goals' => (
-          const Text('Цели недели', style: T.title),
+          Text('Цели недели', style: T.title),
           _count(m.weekGoals().where((g) => g['done'] == true).length, m.weekGoals().length),
           const GoalsBlock()
         ),
       'tasks' => (const TasksHeader(), null, const TasksBlock()),
-      'future' => (const Text('Будущие задачи', style: T.title), _num(m.futureTasks().length), const FutureBlock()),
+      'future' => (Text('Будущие задачи', style: T.title), _num(m.futureTasks().length), const FutureBlock()),
       'week' => (
-          const Text('Неделя', style: T.title),
+          Text('Неделя', style: T.title),
           IconBtn(Icons.open_in_full, 'Открыть неделю крупно', () => sc.actions.openWeek(context), size: 13),
           Padding(padding: const EdgeInsets.only(top: 6), child: WeekStrip(start: m.today)),
         ),
       'pomo' => (const PomoHeader(), null, const PomoBlock()),
-      'notes' => (const Text('Заметки', style: T.title), null, const NotesBlock()),
-      'stats' => (const Text('Итоги недели', style: T.title), null, const StatsBlock()),
-      'events' => (const Text('События', style: T.title), null, const EventsBlock()),
+      'notes' => (Text('Заметки', style: T.title), null, const NotesBlock()),
+      'stats' => (Text('Итоги недели', style: T.title), null, const StatsBlock()),
+      'events' => (Text('События', style: T.title), null, const EventsBlock()),
       _ => (Text(blockKey), null, const SizedBox.shrink()),
     };
     final summary = shut ? _summary(m) : null;
     return Container(
       margin: EdgeInsets.only(bottom: gap),
       padding: compact ? const EdgeInsets.fromLTRB(8, 5, 10, 7) : const EdgeInsets.fromLTRB(10, 8, 12, 10),
-      decoration: BoxDecoration(color: C.card, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: C.card, borderRadius: BorderRadius.circular(C.cardRadius)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         InkWell(
           onTap: () => m.toggleCollapsed(blockKey),
@@ -259,7 +259,7 @@ class BlockCard extends StatelessWidget {
             AnimatedRotation(
               turns: shut ? -0.25 : 0,
               duration: const Duration(milliseconds: 150),
-              child: const Icon(Icons.expand_more, size: 16, color: C.muted),
+              child: Icon(Icons.expand_more, size: 16, color: C.muted),
             ),
             const SizedBox(width: 2),
             Expanded(child: title),

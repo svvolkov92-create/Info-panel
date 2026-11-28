@@ -78,6 +78,12 @@ class SettingsDialog extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     const SectionLabel('Вид'),
+                    Text('Оформление', style: T.small),
+                    const SizedBox(height: 4),
+                    Wrap(children: [
+                      for (final e in palettes.entries) _ThemeChip(keyName: e.key, p: e.value, selected: C.name == e.key),
+                    ]),
+                    const SizedBox(height: 8),
                     if (isDesktop) ...[
                       Text('Как показывать панель', style: T.small),
                       const SizedBox(height: 4),
@@ -242,6 +248,45 @@ class _AutostartRowState extends State<_AutostartRow> {
           const SizedBox(width: 8),
           Expanded(child: Text('Запускать вместе с Windows', style: T.small)),
         ]),
+      ),
+    );
+  }
+}
+
+/// Выбор темы: образец фона, плашки и акцента, название.
+class _ThemeChip extends StatelessWidget {
+  const _ThemeChip({required this.keyName, required this.p, required this.selected});
+  final String keyName;
+  final Palette p;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = Scope.of(context).m;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8, bottom: 4),
+      child: InkWell(
+        onTap: () => m.setSetting('ui_theme', keyName),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 5, 10, 5),
+          decoration: BoxDecoration(
+            color: p.bg,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: selected ? C.accent : C.faint, width: selected ? 2 : 1),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 26,
+              height: 18,
+              decoration: BoxDecoration(color: p.card, borderRadius: BorderRadius.circular(p.cardRadius > 0 ? 3 : 0)),
+              alignment: Alignment.center,
+              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: p.accent, shape: BoxShape.circle)),
+            ),
+            const SizedBox(width: 8),
+            Text(p.title, style: TextStyle(fontSize: 12, color: p.fg)),
+          ]),
+        ),
       ),
     );
   }

@@ -42,7 +42,7 @@ class _TaskMenuState extends State<TaskMenu> {
     if (!active) return child;
     return MenuAnchor(
       controller: ctl,
-      style: const MenuStyle(backgroundColor: WidgetStatePropertyAll(C.card)),
+      style: MenuStyle(backgroundColor: WidgetStatePropertyAll(C.card)),
       onClose: () => WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => active = false);
       }),
@@ -52,16 +52,16 @@ class _TaskMenuState extends State<TaskMenu> {
   }
 }
 
-Widget _item(String label, VoidCallback? onTap, {Color color = C.fg, bool checked = false}) => MenuItemButton(
+Widget _item(String label, VoidCallback? onTap, {Color? color, bool checked = false}) => MenuItemButton(
       onPressed: onTap,
-      leadingIcon: checked ? const Icon(Icons.check, size: 14, color: C.accent) : const SizedBox(width: 14),
-      child: Text(label, style: TextStyle(fontSize: 13, color: onTap == null ? C.faint : color)),
+      leadingIcon: checked ? Icon(Icons.check, size: 14, color: C.accent) : const SizedBox(width: 14),
+      child: Text(label, style: TextStyle(fontSize: 13, color: onTap == null ? C.faint : (color ?? C.fg))),
     );
 
 Widget _sub(String label, List<Widget> children) => SubmenuButton(
       menuChildren: children,
       leadingIcon: const SizedBox(width: 14),
-      child: Text(label, style: const TextStyle(fontSize: 13, color: C.fg)),
+      child: Text(label, style: TextStyle(fontSize: 13, color: C.fg)),
     );
 
 List<Widget> taskMenuItems(BuildContext context, String id, {VoidCallback? onEdit, VoidCallback? onSubs}) {

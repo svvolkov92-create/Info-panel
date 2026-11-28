@@ -4,6 +4,7 @@ import 'package:desktop_panel/core/core.dart';
 import 'package:desktop_panel/core/model.dart';
 import 'package:desktop_panel/core/storage.dart';
 import 'package:desktop_panel/ui/app.dart';
+import 'package:desktop_panel/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -208,6 +209,28 @@ void main() {
     m.toggleTask('b');
     await tester.pump();
     expect(find.text('всё сделано ✓ 1'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    m.dispose();
+  });
+
+  testWidgets('тема «Уголёк» включается из настроек без перезапуска', (tester) async {
+    final m = model();
+    await pump(tester, m, const Size(1280, 820));
+    expect(C.name, 'classic');
+    await tester.tap(find.byTooltip('Меню'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Настройки…').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Уголёк'));
+    await tester.pumpAndSettle();
+    expect(m.s['ui_theme'], 'ember');
+    expect(C.accent, const Color(0xFFFF4700));
+    expect(find.text('Оформление'), findsOneWidget); // окно настроек осталось открытым
+    final dialog = tester.widget<Dialog>(find.byType(Dialog).last);
+    expect(dialog.backgroundColor, const Color(0xFF0F0D0A));
+    await tester.tap(find.text('Классическая'));
+    await tester.pumpAndSettle();
+    expect(C.name, 'classic');
     await tester.pump(const Duration(seconds: 10));
     m.dispose();
   });

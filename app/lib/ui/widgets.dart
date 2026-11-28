@@ -6,10 +6,11 @@ import 'theme.dart';
 
 /// Текстовая кнопка панели: цветная надпись, подсветка при наведении.
 class Btn extends StatelessWidget {
-  const Btn(this.label, this.onTap, {super.key, this.color = C.accent, this.size = 12, this.bold = false, this.pad = 6});
+  const Btn(this.label, this.onTap, {super.key, Color? color, this.size = 12, this.bold = false, this.pad = 6}) : _color = color;
   final String label;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? _color;
+  Color get color => _color ?? C.accent;
   final double size;
   final bool bold;
   final double pad;
@@ -30,11 +31,12 @@ class Btn extends StatelessWidget {
 }
 
 class IconBtn extends StatelessWidget {
-  const IconBtn(this.icon, this.tip, this.onTap, {super.key, this.color = C.muted, this.size = 16});
+  const IconBtn(this.icon, this.tip, this.onTap, {super.key, Color? color, this.size = 16}) : _color = color;
   final IconData icon;
   final String tip;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? _color;
+  Color get color => _color ?? C.muted;
   final double size;
 
   @override
@@ -53,11 +55,12 @@ class IconBtn extends StatelessWidget {
 
 /// Переключатель-«фишка», как chip() в карточке задачи Python-версии.
 class Pill extends StatelessWidget {
-  const Pill(this.label, this.selected, this.onTap, {super.key, this.color = C.accent});
+  const Pill(this.label, this.selected, this.onTap, {super.key, Color? color}) : _color = color;
   final String label;
   final bool selected;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? _color;
+  Color get color => _color ?? C.accent;
 
   @override
   Widget build(BuildContext context) {

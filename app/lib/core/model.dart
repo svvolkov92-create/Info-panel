@@ -38,6 +38,7 @@ Json defaultSettings() => {
       'ui_scale': 0.85,
       'ui_compact': true,
       'gtd': true,
+      'ui_theme': 'classic',
       'ui_layer': 'normal', // normal | top | bottom | desktop
       'ui_bounds': null, // [x, y, w, h] виджета
       'ui_bounds_window': null, // [x, y, w, h] окна

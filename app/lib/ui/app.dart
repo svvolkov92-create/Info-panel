@@ -31,7 +31,35 @@ class _PanelAppState extends State<PanelApp> {
   late final Widget home = Home(desk: widget.desk, actions: actions, sys: widget.sys);
   // Тема строится один раз на каждый режим плотности: новая тема при каждом изменении
   // заставляла бы перестраивать всё приложение.
-  static final _themes = <bool, ThemeData>{};
+  static final _themes = <String, ThemeData>{};
+
+  @override
+  void initState() {
+    super.initState();
+    C.apply('${widget.m.s['ui_theme']}');
+    widget.m.addListener(_checkTheme);
+  }
+
+  @override
+  void dispose() {
+    widget.m.removeListener(_checkTheme);
+    super.dispose();
+  }
+
+  /// Смена темы: цвета берутся из C при построении, поэтому перестраиваем всё дерево,
+  /// включая открытые окна (настройки), — без перезапуска и без потери их состояния.
+  void _checkTheme() {
+    final key = '${widget.m.s['ui_theme']}';
+    final want = palettes.containsKey(key) ? key : 'classic';
+    if (want == C.name || !mounted) return;
+    C.apply(want);
+    void rebuild(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(rebuild);
+    }
+
+    (context as Element).visitChildren(rebuild);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +71,7 @@ class _PanelAppState extends State<PanelApp> {
         return MaterialApp(
           title: 'Информационная панель',
           debugShowCheckedModeBanner: false,
-          theme: _themes[compact] ??= buildTheme(compact: compact),
+          theme: _themes['${C.name}/$compact'] ??= buildTheme(compact: compact),
           locale: const Locale('ru'),
           builder: (context, child) => Scope(
             m: m,

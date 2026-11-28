@@ -486,7 +486,7 @@ class _ProjectsState extends State<_Projects> {
           ),
           PopupMenuButton<VoidCallback>(
             tooltip: 'Действия с проектом',
-            icon: const Icon(Icons.more_horiz, size: 16, color: C.muted),
+            icon: Icon(Icons.more_horiz, size: 16, color: C.muted),
             padding: EdgeInsets.zero,
             onSelected: (f) => f(),
             itemBuilder: (_) => [
@@ -499,7 +499,7 @@ class _ProjectsState extends State<_Projects> {
                   child: const Text('Переименовать…')),
               PopupMenuItem(value: () => m.setProjectStatus(pid, 'done'), child: const Text('Завершить')),
               PopupMenuItem(value: () => m.setProjectStatus(pid, 'someday'), child: const Text('Отложить на когда-нибудь')),
-              PopupMenuItem(value: () => _delete(context, m, p), child: const Text('Удалить', style: TextStyle(color: C.danger))),
+              PopupMenuItem(value: () => _delete(context, m, p), child: Text('Удалить', style: TextStyle(color: C.danger))),
             ],
           ),
         ]),

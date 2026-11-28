@@ -217,7 +217,7 @@ class _TasksBlockState extends State<TasksBlock> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const SizedBox(width: 16, child: Icon(Icons.arrow_forward, size: 13, color: C.warn)),
+              SizedBox(width: 16, child: Icon(Icons.arrow_forward, size: 13, color: C.warn)),
               const SizedBox(width: 4),
               Expanded(child: Text(t['text'] as String, style: T.norm.copyWith(color: C.muted))),
               Text(
@@ -557,7 +557,7 @@ class _TaskRowState extends State<TaskRow> {
             preferBelow: true,
             padding: const EdgeInsets.all(10),
             constraints: const BoxConstraints(maxWidth: 340),
-            richMessage: TextSpan(style: const TextStyle(fontSize: 12, color: C.fg, height: 1.4), children: [
+            richMessage: TextSpan(style: TextStyle(fontSize: 12, color: C.fg, height: 1.4), children: [
               if (noteText.isNotEmpty) TextSpan(text: short(noteText, 300)),
               if (noteText.isNotEmpty && subs.isNotEmpty) const TextSpan(text: '\n'),
               for (final sb in subs)
@@ -611,7 +611,7 @@ class _TaskRowState extends State<TaskRow> {
                 child: Text(sb['text'] as String,
                     style: TextStyle(fontSize: font - 1, color: sb['done'] == true ? C.muted : C.fg)),
               ),
-              InkWell(onTap: () => m.deleteSub(id, sb['id'] as String), child: const Icon(Icons.close, size: 12, color: C.faint)),
+              InkWell(onTap: () => m.deleteSub(id, sb['id'] as String), child: Icon(Icons.close, size: 12, color: C.faint)),
             ]),
           ),
         Padding(
